@@ -1,18 +1,26 @@
-# Data & Secrets
+# Secrets & env
+.env
+
+# Data files
 data/
 *.csv
 *.xlsx
-*.json
-.env
 
-# Python Backend
+# Python
 venv/
 env/
+.venv/
 __pycache__/
 *.pyc
 
-# React Frontend
+# React
 node_modules/
 dist/
 build/
+
+# OS
 .DS_Store
+
+# PDFs (patient data — never commit)
+*.pdf
+*.PDF
