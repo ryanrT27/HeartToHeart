@@ -1,0 +1,18 @@
+# Data & Secrets
+data/
+*.csv
+*.xlsx
+*.json
+.env
+
+# Python Backend
+venv/
+env/
+__pycache__/
+*.pyc
+
+# React Frontend
+node_modules/
+dist/
+build/
+.DS_Store
