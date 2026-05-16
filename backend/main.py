@@ -13,9 +13,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==========================================
 # DATA SHAPE
-# ==========================================
+
 class PatientData(BaseModel):
     user_role: str  # "patient" or "doctor"
     complications: List[str]
@@ -23,6 +22,7 @@ class PatientData(BaseModel):
 # ==========================================
 # ENDPOINT 1: Upload & Parse (Teammate's Domain)
 # ==========================================
+
 @app.post("/api/upload-and-parse")
 async def parse_document(file: UploadFile = File(...)):
     """
@@ -37,9 +37,8 @@ async def parse_document(file: UploadFile = File(...)):
         "parsed_complications": ["preeclampsia"] # Mock data
     }
 
-# ==========================================
 # ENDPOINT 2: Submit & Validate (No Database)
-# ==========================================
+
 @app.post("/api/submit-data")
 def submit_data(data: PatientData):
     """
@@ -53,9 +52,8 @@ def submit_data(data: PatientData):
         "confirmed_data": data
     }
 
-# ==========================================
 # ENDPOINT 3: Match Trials (Teammate's Domain)
-# ==========================================
+
 @app.post("/api/match-trials")
 def match_trials(data: PatientData):
     """
