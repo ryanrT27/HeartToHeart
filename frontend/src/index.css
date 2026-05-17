@@ -13,6 +13,10 @@
   --font-serif: "Merriweather", Georgia, serif;
   --site-header-height: 124px;
   --color-hero-copy-bg: #ffd6da;
+  --color-impact-section-bg: #ffd1d1;
+  --color-impact-strip-bg: #c97272;
+  --color-impact-quote-bg: #c97272;
+  --color-impact-text: #111111;
   /* Matches hero copy / marketing horizontal inset so the logo lines up with headings. */
   --site-gutter-x: clamp(1.5rem, 4vw, 4rem);
   --space-md: 8px;
@@ -180,6 +184,64 @@ body {
   min-height: 0;
 }
 
+.hero-stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  overflow: visible;
+  padding-bottom: clamp(2.5rem, 7vw, 5.5rem);
+}
+
+@media (max-width: 960px) {
+  .hero-stage {
+    display: flex;
+    flex-direction: column;
+    flex: unset;
+    padding-bottom: clamp(1.25rem, 5vw, 2rem);
+  }
+}
+
+.hero-overlap-img {
+  position: absolute;
+  z-index: 3;
+  /* Nearer the column junction; capped so the 827px frame does not spill past the stage. */
+  left: clamp(
+    var(--site-gutter-x),
+    32vw,
+    calc(100% - min(827px, calc(100% - 2 * var(--site-gutter-x))) - var(--site-gutter-x))
+  );
+  bottom: clamp(-0.25rem, -2vw, 0.25rem);
+  /* Design size 827×378; height follows aspect-ratio when width scales down. */
+  width: min(827px, calc(100% - 2 * var(--site-gutter-x)));
+  height: auto;
+  aspect-ratio: 396 / 181;
+  border-radius: 60px;
+  box-shadow: 0 12px 40px rgba(107, 17, 24, 0.18);
+  background-color: lightgray;
+  background-position: 0 -104.211px;
+  background-size: 100% 145.489%;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 960px) {
+  .hero-overlap-img {
+    position: static;
+    width: min(827px, 100%);
+    height: auto;
+    aspect-ratio: 396 / 181;
+    margin: clamp(-0.5rem, -2vw, 0rem) auto 0;
+    pointer-events: auto;
+    align-self: center;
+    flex-shrink: 0;
+    left: auto;
+    bottom: auto;
+    background-position: 0 -104.211px;
+    background-size: 100% 145.489%;
+  }
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
@@ -220,7 +282,9 @@ body {
 }
 
 .hero-copy {
-  padding: clamp(2rem, 5vw, 4rem) var(--site-gutter-x);
+  position: relative;
+  z-index: 1;
+  padding: clamp(2.5rem, 5vw, 4.5rem) var(--site-gutter-x);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -235,6 +299,16 @@ body {
   color: var(--color-hero-heading);
   margin: 0;
   line-height: 1.2;
+}
+
+.hero-lead {
+  font-family: var(--font-serif);
+  font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+  font-weight: 700;
+  color: var(--color-hero-heading);
+  margin: -0.35rem 0 0;
+  max-width: 36rem;
+  line-height: 1.45;
 }
 
 .hero-body {
@@ -323,6 +397,7 @@ body {
 
 .hero-image-wrap {
   position: relative;
+  z-index: 2;
   min-height: 280px;
   display: flex;
   align-items: stretch;
@@ -1271,13 +1346,6 @@ button {
 }
 
 /* ─────────────────────────────────────────────
-   Hero tweaks for scrollable page
-───────────────────────────────────────────── */
-.hero-copy {
-  padding: clamp(2.5rem, 5vw, 4.5rem) var(--site-gutter-x);
-}
-
-/* ─────────────────────────────────────────────
    Our Mission Section
 ───────────────────────────────────────────── */
 .mission-section {
@@ -1369,15 +1437,21 @@ button {
    Impact / Quote Section
 ───────────────────────────────────────────── */
 .impact-section {
-  background: var(--color-page-bg);
-  padding: clamp(3rem, 6vw, 5rem) var(--site-gutter-x);
+  overflow: visible;
+  background: linear-gradient(
+    to bottom,
+    var(--color-impact-strip-bg) 0,
+    var(--color-impact-strip-bg) clamp(52px, 9vw, 96px),
+    var(--color-impact-section-bg) clamp(52px, 9vw, 96px)
+  );
+  padding: clamp(3rem, 12vw, 10rem) var(--site-gutter-x) clamp(3.5rem, 8vw, 6rem);
 }
 
 .impact-inner {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(2rem, 4vw, 4rem);
-  align-items: center;
+  gap: clamp(1.25rem, 4vw, 3rem);
+  align-items: start;
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -1390,60 +1464,114 @@ button {
 
 .impact-media {
   position: relative;
-  min-height: 320px;
+  z-index: 1;
+  margin-top: clamp(-3rem, -6vw, -4.5rem);
+  overflow: visible;
 }
 
-.impact-photo-placeholder {
-  width: 55%;
-  padding-bottom: 70%;
-  background: #d4a8a8;
-  border-radius: 14px;
-  position: relative;
-  z-index: 1;
-  /* swap this for an <img> when your photo is ready */
+.doctor-image {
+  width: 100%;
+  display: block;
+  min-height: min(420px, 55vw);
+  object-fit: cover;
+  object-position: center top;
+  border-radius: clamp(28px, 5vw, 44px);
+  box-shadow: 0 16px 44px rgba(62, 22, 26, 0.14);
 }
 
 .impact-quote-box {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 55%;
-  background: #c97272;
-  border-radius: 14px;
-  padding: 1.5rem 1.25rem;
   z-index: 2;
+  left: clamp(8%, 14%, 18%);
+  right: clamp(-1rem, -6vw, -2.5rem);
+  bottom: clamp(2.5%, 8%, 14%);
+  width: auto;
+  margin: 0;
+  padding: clamp(1.1rem, 3vw, 1.65rem) clamp(1.5rem, 4vw, 2.25rem);
+  background: var(--color-impact-quote-bg);
+  border-radius: 999px;
+  box-shadow: 0 14px 36px rgba(62, 22, 26, 0.22);
 }
 
 .impact-quote-text {
   font-family: var(--font-serif);
-  font-size: 0.9375rem;
+  font-size: clamp(0.9375rem, 2vw, 1.125rem);
+  font-weight: 400;
+  font-style: normal;
   color: #fff;
   margin: 0;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .impact-media {
+    margin-top: clamp(-1.35rem, -4vw, -2.5rem);
+  }
+
+  .doctor-image {
+    min-height: 320px;
+  }
+
+  .impact-quote-box {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-top: -2rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: min(100%, 520px);
+    transform: none;
+  }
 }
 
 .impact-copy {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  text-align: center;
+  gap: clamp(1.75rem, 4vw, 2.75rem);
+  padding-top: clamp(0.5rem, 3vw, 2rem);
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  justify-self: center;
+}
+
+@media (min-width: 761px) {
+  .impact-copy {
+    justify-self: end;
+    margin-right: 0;
+    padding-top: clamp(1rem, 4vw, 3rem);
+  }
 }
 
 .impact-heading {
   font-family: var(--font-serif);
-  font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
   font-weight: 700;
-  color: var(--color-hero-heading);
+  color: var(--color-impact-text);
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.impact-heading-line {
+  display: block;
 }
 
 .impact-body {
   font-family: var(--font-serif);
-  font-size: clamp(0.9375rem, 1.5vw, 1rem);
-  color: #4a2c30;
+  font-size: clamp(0.9375rem, 1.8vw, 1.0625rem);
+  font-weight: 400;
+  color: var(--color-impact-text);
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.65;
+  opacity: 0.92;
 }
 
 /* ─────────────────────────────────────────────

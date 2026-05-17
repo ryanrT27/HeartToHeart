@@ -47,19 +47,20 @@ export default function LandingHero({ onFindMatch }) {
       {/* ── Our Mission ── */}
       <section className="mission-section" aria-label="Our Mission">
         <h2 className="mission-heading">Our Mission</h2>
+        <br></br>
         <div className="mission-cards">
           {[
             {
               title: "Advocacy",
-              text: "Talk about advocating for women\u2019s cardiovascular health here",
+              text: "When women have no systems in place to advocate for themselves, cardiovascular risks go undetected. Heart2Heart empowers women to advocate for themselves and their families by connecting them with clinical trials that can define the future of maternal cardiovascular care.",
             },
             {
               title: "Research",
-              text: "Using research for preventative measures\u2014more research on women = more prevention",
+              text: "Women\u2019s cardiovascular health during pregnancy and postpartum is severely understudied. Better access to clinical trials improves research representation and gives physicians the data they need to consistently provide informed and accurate care.",
             },
             {
               title: "Awareness",
-              text: "Make women aware of their own cardiovascular health",
+              text: "Many women experience symptoms that are dismissed, misdiagnosed, or unexplained. Participating in clinical trials allows women to properly monitor, evaluate, and learn new information that can improve understanding of their own health.",
             },
           ].map(({ title, text }) => (
             <div className="mission-card" key={title}>
