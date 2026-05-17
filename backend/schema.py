@@ -13,6 +13,9 @@ _JSON_SCHEMA_EXAMPLE = """\
     "weight_kg": <number or null>,
     "bmi": <number or null>,
     "zip_code": <string or null>,
+    "country": <string or null>,
+    "subdivision": <string or null>,
+    "gender_identity": <string or null>,
     "radius_miles": <integer or null>
   },
   "pregnancy": {
@@ -59,7 +62,10 @@ Demographics extraction rules:
 - "race_ethnicity": Extract as a list of lowercase strings (e.g. ["white", "hispanic"]).
 - "height_cm" and "weight_kg": Extract numeric values. Convert inches to cm (* 2.54),
   lbs to kg (/ 2.205) if needed. Calculate "bmi" = weight_kg / (height_cm/100)^2.
-- "zip_code": Extract 5-digit ZIP if present.
+- "zip_code": Extract 5-digit ZIP if present (legacy); may be null if country is given.
+- "country": Full country name if stated (e.g. "United States").
+- "subdivision": State or province if stated.
+- "gender_identity": Patient-reported gender identity if stated (short string code or null).
 - "radius_miles": null unless explicitly stated.
 
 Pregnancy status extraction rules:

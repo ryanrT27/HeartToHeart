@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { commaList } from "../formatDisplay";
 
+const GENDER_IDENTITY_LABELS = {
+  woman: "Woman",
+  man: "Man",
+  non_binary: "Non-binary",
+  prefer_not_to_say: "Prefer not to say",
+  another_identity: "Another identity",
+};
+
+function genderIdentityLabel(value) {
+  if (value == null || value === "") return "—";
+  return GENDER_IDENTITY_LABELS[value] || String(value);
+}
+
 const DIAGNOSIS_FIELDS = [
   { key: "preeclampsia", label: "Preeclampsia" },
   { key: "hellp_syndrome", label: "HELLP Syndrome" },
@@ -84,12 +97,13 @@ export default function ReviewEdit({ profile, setProfile, onSubmit, onBack }) {
         <h3>Demographics</h3>
         <div className="summary-grid">
           <span>Age: {demo.age || "—"}</span>
+          <span>Gender identity: {genderIdentityLabel(demo.gender_identity)}</span>
           <span>Race: {commaList(demo.race_ethnicity) || "—"}</span>
           <span>Height: {demo.height_cm ? `${demo.height_cm.toFixed(1)} cm` : "—"}</span>
           <span>Weight: {demo.weight_kg ? `${demo.weight_kg.toFixed(1)} kg` : "—"}</span>
           <span>BMI: {demo.bmi ? demo.bmi.toFixed(1) : "—"}</span>
-          <span>ZIP: {demo.zip_code || "—"}</span>
-          <span>Radius: {demo.radius_miles ? `${demo.radius_miles} mi` : "—"}</span>
+          <span>Country: {demo.country || "—"}</span>
+          <span>State / Province: {demo.subdivision || "—"}</span>
         </div>
       </section>
 

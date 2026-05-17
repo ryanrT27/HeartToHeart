@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { COUNTRY_OPTIONS, subdivisionsForCountry } from "../data/geoRegions.js";
 
 const RACE_OPTIONS = [
   { id: "white", label: "White" },
@@ -10,11 +11,25 @@ const RACE_OPTIONS = [
   { id: "other", label: "Other" },
 ];
 
+const GENDER_OPTIONS = [
+  { value: "", label: "Select…" },
+  { value: "woman", label: "Woman" },
+  { value: "man", label: "Man" },
+  { value: "non_binary", label: "Non-binary" },
+  { value: "prefer_not_to_say", label: "Prefer not to say" },
+  { value: "another_identity", label: "Another identity" },
+];
+
 export default function Demographics({ formData, setFormData, onNext }) {
   const [raceSelections, setRaceSelections] = useState(formData.race_ethnicity || []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "country") {
+      setFormData({ ...formData, country: value, subdivision: "" });
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
   };
 
   const toggleRace = (id) => {
@@ -25,58 +40,143 @@ export default function Demographics({ formData, setFormData, onNext }) {
     setFormData({ ...formData, race_ethnicity: updated });
   };
 
+  const subs = formData.country ? subdivisionsForCountry(formData.country) : null;
+  const subSelectDisabled = !formData.country;
+
   return (
-    <>
-      <h2 className="screen-heading">Patient Information</h2>
+    <div className="demographics-screen">
+      <h2 className="demographics-screen-title">Tell us about yourself below!</h2>
 
-      <label className="field">
-        Age
-        <input type="number" name="age" value={formData.age || ""} onChange={handleChange} />
-      </label>
+      <div className="demographics-form">
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Age</legend>
+          <input
+            type="number"
+            name="age"
+            className="demo-input-field"
+            value={formData.age || ""}
+            onChange={handleChange}
+            placeholder="Type here"
+            min={0}
+          />
+        </fieldset>
 
-      <fieldset className="field" style={{ border: "none", padding: 0, margin: 0 }}>
-        <legend style={{ fontWeight: 500, color: "#475569", marginBottom: 6 }}>Race / Ethnicity</legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}>
-          {RACE_OPTIONS.map((opt) => (
-            <label key={opt.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}>
-              <input
-                type="checkbox"
-                checked={raceSelections.includes(opt.id)}
-                onChange={() => toggleRace(opt.id)}
-              />
-              {opt.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Gender identity</legend>
+          <select
+            name="genderIdentity"
+            className="demo-input-field demo-input-select"
+            value={formData.genderIdentity || ""}
+            onChange={handleChange}
+          >
+            {GENDER_OPTIONS.map((o) => (
+              <option key={o.value || "placeholder"} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </fieldset>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <label className="field" style={{ flex: 1 }}>
-          Height (ft)
-          <input type="number" name="heightFeet" value={formData.heightFeet || ""} onChange={handleChange} />
-        </label>
-        <label className="field" style={{ flex: 1 }}>
-          Height (in)
-          <input type="number" name="heightInches" value={formData.heightInches || ""} onChange={handleChange} />
-        </label>
-        <label className="field" style={{ flex: 1 }}>
-          Weight (lbs)
-          <input type="number" name="weight" value={formData.weight || ""} onChange={handleChange} />
-        </label>
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Height</legend>
+          <div className="demo-height-row">
+            <input
+              type="number"
+              name="heightFeet"
+              className="demo-input-field"
+              value={formData.heightFeet || ""}
+              onChange={handleChange}
+              placeholder="ft"
+              min={0}
+            />
+            <input
+              type="number"
+              name="heightInches"
+              className="demo-input-field"
+              value={formData.heightInches || ""}
+              onChange={handleChange}
+              placeholder="in"
+              min={0}
+              max={11}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Weight</legend>
+          <input
+            type="number"
+            name="weight"
+            className="demo-input-field"
+            value={formData.weight || ""}
+            onChange={handleChange}
+            placeholder="lbs"
+            min={0}
+            step="0.1"
+          />
+        </fieldset>
+
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Country</legend>
+          <select
+            name="country"
+            className="demo-input-field demo-input-select"
+            value={formData.country || ""}
+            onChange={handleChange}
+          >
+            <option value="">Select country…</option>
+            {COUNTRY_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </fieldset>
+
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">State / Province</legend>
+          <select
+            name="subdivision"
+            className="demo-input-field demo-input-select"
+            value={formData.subdivision || ""}
+            onChange={handleChange}
+            disabled={subSelectDisabled}
+          >
+            <option value="">
+              {subSelectDisabled ? "Select country first…" : "Select state/province…"}
+            </option>
+            {subs &&
+              subs.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            {formData.country && subs === null && (
+              <option value="Not listed">Not listed</option>
+            )}
+          </select>
+        </fieldset>
+
+        <fieldset className="demo-input-shell demo-input-shell--full-width">
+          <legend className="demo-input-label">Race / Ethnicity</legend>
+          <div className="demo-race-options">
+            {RACE_OPTIONS.map((opt) => (
+              <label key={opt.id} className="demo-race-option">
+                <input
+                  type="checkbox"
+                  checked={raceSelections.includes(opt.id)}
+                  onChange={() => toggleRace(opt.id)}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <label className="field" style={{ flex: 1 }}>
-          Zip Code
-          <input type="text" name="zipCode" value={formData.zipCode || ""} onChange={handleChange} maxLength={5} />
-        </label>
-        <label className="field" style={{ flex: 1 }}>
-          Search Radius (miles)
-          <input type="number" name="searchRadius" value={formData.searchRadius || ""} onChange={handleChange} />
-        </label>
-      </div>
-
-      <button className="btn-primary" onClick={onNext}>Next</button>
-    </>
+      <button type="button" className="hero-cta demographics-next" onClick={onNext}>
+        Next
+      </button>
+    </div>
   );
 }

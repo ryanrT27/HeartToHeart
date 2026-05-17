@@ -1,31 +1,78 @@
-import { useState } from 'react'
-import Home from './components/Home'
-import Onboarding from './components/Onboarding'
-import Results from './components/Results'
+import { useState } from "react";
+import SiteHeader from "./components/SiteHeader";
+import LandingHero from "./components/LandingHero";
+import AboutPage from "./components/AboutPage";
+import PrivacyPage from "./components/PrivacyPage";
+import Onboarding from "./components/Onboarding";
+import Results from "./components/Results";
+
+const ONBOARDING_LEAVE_WARNING =
+  "You have matching information in progress. If you leave this page, your progress will be lost. Continue?";
 
 function App() {
-  const [currentView, setCurrentView] = useState('home')
-  const [trials, setTrials] = useState([])
+  const [currentView, setCurrentView] = useState("marketing");
+  const [marketingPage, setMarketingPage] = useState("home");
+  const [trials, setTrials] = useState([]);
 
-  const containerStyle = {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    minHeight: '100vh', width: '100vw', margin: 0, padding: '20px', boxSizing: 'border-box',
-    backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif'
-  }
+  const goToMarketing = (page) => {
+    setMarketingPage(page);
+    setCurrentView("marketing");
+  };
+
+  const navigateMarketingFromOnboarding = (page) => {
+    if (!window.confirm(ONBOARDING_LEAVE_WARNING)) return;
+    setMarketingPage(page);
+    setCurrentView("marketing");
+  };
 
   return (
-    <div style={containerStyle}>
-      {currentView === 'home' && (
-        <Home setCurrentView={setCurrentView} />
+    <div className="app-root">
+      {currentView === "marketing" && (
+        <div className="site-shell">
+          <div className="site-shell-inner">
+            <SiteHeader activePage={marketingPage} onNavigate={setMarketingPage} />
+            <main
+              className={
+                marketingPage === "home"
+                  ? "site-main"
+                  : "site-main site-main--marketing-subpage"
+              }
+            >
+              {marketingPage === "home" && (
+                <LandingHero onFindMatch={() => setCurrentView("onboarding")} />
+              )}
+              {marketingPage === "about" && <AboutPage />}
+              {marketingPage === "privacy" && <PrivacyPage />}
+            </main>
+          </div>
+        </div>
       )}
-      {currentView === 'onboarding' && (
-        <Onboarding setCurrentView={setCurrentView} setTrials={setTrials} />
+
+      {currentView === "onboarding" && (
+        <div className="site-shell">
+          <div className="site-shell-inner">
+            <SiteHeader activePage={null} onNavigate={navigateMarketingFromOnboarding} />
+            <main className="site-main site-main--onboarding">
+              <div className="app-flow app-flow--onboarding">
+                <Onboarding setCurrentView={setCurrentView} setTrials={setTrials} />
+              </div>
+            </main>
+          </div>
+        </div>
       )}
-      {currentView === 'results' && (
-        <Results setCurrentView={setCurrentView} trials={trials} />
+
+      {currentView === "results" && (
+        <div className="site-shell">
+          <div className="site-shell-inner">
+            <SiteHeader activePage={null} onNavigate={goToMarketing} />
+            <main className="site-main site-main--results">
+              <Results onGoHome={() => goToMarketing("home")} trials={trials} />
+            </main>
+          </div>
+        </div>
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

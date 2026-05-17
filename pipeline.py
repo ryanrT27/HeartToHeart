@@ -56,7 +56,7 @@ CT_SLEEP = 1.0
 # Ollama local server.
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/chat")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
-OLLAMA_TIMEOUT = 300  # 5 minutes per request
+OLLAMA_TIMEOUT = 1200  # 5 minutes per request
 
 OUTPUT_FILE = "maternal_cardio_trials_parsed.json"
 CHECKPOINT_EVERY = 10  # save more frequently since each call is slower

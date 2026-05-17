@@ -1,20 +1,20 @@
 import { commaList, formatLocation, scalarDisplay } from "../formatDisplay";
 
-export default function Results({ setCurrentView, trials }) {
+export default function Results({ onGoHome, trials }) {
   if (!trials || trials.length === 0) {
     return (
-      <div style={{ width: '100%', maxWidth: 800 }}>
+      <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
         <h2 style={{ color: '#d6336c' }}>No Matches Found</h2>
         <p style={{ color: '#475569' }}>
           We couldn't find any matching clinical trials for your profile. Try adjusting your information and searching again.
         </p>
-        <button className="btn-primary" onClick={() => setCurrentView('home')} style={{ marginTop: 20 }}>Start Over</button>
+        <button className="btn-primary" onClick={onGoHome} style={{ marginTop: 20 }}>Start Over</button>
       </div>
     )
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 800 }}>
+    <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
       <h1 style={{ color: '#d6336c', marginBottom: 10 }}>Your Clinical Trial Matches</h1>
       <p style={{ color: '#475569', marginBottom: 24, fontSize: 14 }}>
         Top {trials.length} trials ranked by relevance to your profile.
@@ -81,7 +81,7 @@ export default function Results({ setCurrentView, trials }) {
         ))}
       </div>
 
-      <button className="btn-primary" onClick={() => setCurrentView('home')} style={{ marginTop: 24 }}>
+      <button className="btn-primary" onClick={onGoHome} style={{ marginTop: 24 }}>
         Start Over
       </button>
     </div>

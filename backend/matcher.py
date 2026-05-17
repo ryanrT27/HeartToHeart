@@ -194,13 +194,44 @@ def _score_conditions(patient, trial):
     return W_CONDITIONS * (matched / len(required)), reasons, []
 
 
-def _score_location(patient, trial):
-    zip_code = (patient.get("demographics") or {}).get("zip_code")
-    if not zip_code:
-        return W_LOCATION * 0.5, []
+def _canonical_country(raw: str) -> str:
+    key = raw.casefold().strip()
+    aliases = {
+        "us": "United States",
+        "usa": "United States",
+        "united states": "United States",
+        "united states of america": "United States",
+        "u.s.": "United States",
+        "u.s.a.": "United States",
+        "uk": "United Kingdom",
+        "u.k.": "United Kingdom",
+        "great britain": "United Kingdom",
+    }
+    return aliases.get(key, raw.strip().title())
 
-    # Infer patient country from zip format: 5-digit = US
-    patient_country = "United States" if str(zip_code).isdigit() and len(str(zip_code)) == 5 else None
+
+def _patient_country(demo: dict[str, Any]) -> str | None:
+    """Prefer explicit country; fall back to US ZIP pattern for legacy profiles."""
+    raw = demo.get("country")
+    if raw and str(raw).strip():
+        return _canonical_country(str(raw).strip())
+    zip_code = demo.get("zip_code")
+    if zip_code and str(zip_code).isdigit() and len(str(zip_code)) == 5:
+        return "United States"
+    return None
+
+
+def _trial_has_country(trial_countries: set[Any], patient_country: str) -> bool:
+    pc = patient_country.casefold()
+    for tc in trial_countries:
+        if tc is not None and str(tc).strip() and str(tc).casefold() == pc:
+            return True
+    return False
+
+
+def _score_location(patient, trial):
+    demo = patient.get("demographics") or {}
+    patient_country = _patient_country(demo)
     if not patient_country:
         return W_LOCATION * 0.5, []
 
@@ -210,8 +241,8 @@ def _score_location(patient, trial):
     if not trial_countries:
         return W_LOCATION * 0.5, []
 
-    if patient_country in trial_countries:
-        return W_LOCATION, ["trial has US locations"]
+    if _trial_has_country(trial_countries, patient_country):
+        return W_LOCATION, [f"trial has locations in {patient_country}"]
     return 0, []
 
 

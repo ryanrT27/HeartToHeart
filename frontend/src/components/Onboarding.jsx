@@ -25,8 +25,11 @@ function buildProfile(formData, extractions) {
       height_cm,
       weight_kg,
       bmi,
-      zip_code: formData.zipCode || null,
-      radius_miles: formData.searchRadius ? parseInt(formData.searchRadius) : null,
+      zip_code: null,
+      country: formData.country?.trim() || null,
+      subdivision: formData.subdivision?.trim() || null,
+      gender_identity: formData.genderIdentity?.trim() || null,
+      radius_miles: null,
     },
     pregnancy: {
       currently_pregnant: formData.pregnancyStatus === 'pregnant' ? true : formData.pregnancyStatus === 'delivered' ? false : null,
@@ -99,7 +102,7 @@ export default function Onboarding({ setCurrentView, setTrials }) {
   const [screen, setScreen] = useState(1)
   const [formData, setFormData] = useState({
     age: '', race_ethnicity: [], heightFeet: '', heightInches: '', weight: '',
-    zipCode: '', searchRadius: '', pregnancyStatus: '', currentWeek: '',
+    country: '', subdivision: '', genderIdentity: '', pregnancyStatus: '', currentWeek: '',
     pregnancyType: '', deliveryDate: '', deliveryType: '', breastfeeding: '', smoking: '',
   })
   const [profile, setProfile] = useState(null)
@@ -136,9 +139,15 @@ export default function Onboarding({ setCurrentView, setTrials }) {
   )
 
   const cardStyle = {
-    backgroundColor: '#ffffff', padding: '40px', borderRadius: '16px',
-    boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '560px',
-    display: 'flex', flexDirection: 'column', gap: '16px',
+    backgroundColor: 'transparent',
+    padding: '16px 0 32px',
+    borderRadius: 0,
+    boxShadow: 'none',
+    width: '100%',
+    maxWidth: '640px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   }
 
   return (

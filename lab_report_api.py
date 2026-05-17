@@ -170,6 +170,9 @@ def create_blank_profile() -> dict[str, Any]:
             "weight_kg": None,
             "bmi": None,
             "zip_code": None,
+            "country": None,
+            "subdivision": None,
+            "gender_identity": None,
             "radius_miles": None,
         },
         "pregnancy": {
