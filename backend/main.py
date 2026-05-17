@@ -83,5 +83,5 @@ def submit_data(profile: PatientProfile):
 
 @app.post("/api/match-trials")
 def match_trials(profile: PatientProfile):
-    results = matcher.find_matches(profile.model_dump(), top_n=10)
+    results = matcher.find_matches(profile.model_dump())
     return {"status": "success", "trials": results}

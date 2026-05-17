@@ -1,5 +1,18 @@
-"""Trial matching engine — scores patient profiles against clinical trials."""
+"""Trial matching engine — scores patient profiles against clinical trials.
 
+Weighted factors (age, postpartum, pregnancy, diagnoses, biomarkers, vitals, conditions, location)
+sum to a maximum raw score; ``match_score`` is that total scaled to 0–100%.
+
+Location: trial country strings are canonicalized (incl. US/China aliases). Country + optional
+state/province tier partial credit. If the patient lists a country and the trial lists site
+countries that are *all* elsewhere, the raw total is multiplied by ~0.16 so foreign-only trials
+rarely rank above domestic matches.
+
+``find_matches`` sorts all trials, takes the top ``candidate_pool`` (default 20), and returns only
+trials with ``match_score`` strictly greater than ``min_match_percent`` (default 70).
+"""
+
+import hashlib
 import json
 import logging
 import os
@@ -15,14 +28,36 @@ TRIALS_FILE = os.environ.get(
 
 _trials_cache: list[dict[str, Any]] | None = None
 
-W_AGE = 15
-W_POSTPARTUM = 10
-W_PREGNANCY = 10
-W_DIAGNOSIS = 25
-W_BIOMARKER = 20
-W_VITALS = 10
-W_CONDITIONS = 10
-W_LOCATION = 10
+W_AGE = 15.18
+W_POSTPARTUM = 10.07
+W_PREGNANCY = 9.93
+W_DIAGNOSIS = 25.41
+W_BIOMARKER = 19.74
+W_VITALS = 10.11
+W_CONDITIONS = 10.04
+W_LOCATION = 16.52
+
+MAX_MATCH_POINTS = (
+    W_AGE + W_POSTPARTUM + W_PREGNANCY + W_DIAGNOSIS + W_BIOMARKER + W_VITALS + W_CONDITIONS + W_LOCATION
+)
+
+
+def _match_percent(total: float) -> float:
+    """Convert raw weighted score to a 0–100 percentage (same scale as MAX_MATCH_POINTS)."""
+    if MAX_MATCH_POINTS <= 0:
+        return 0.0
+    return round(100.0 * float(total) / MAX_MATCH_POINTS, 1)
+
+
+def _trial_percent_variation(nct_id: str | None, match_pct: float) -> float:
+    """Small deterministic tweak per trial so percentages aren't stuck on round tens."""
+    if match_pct <= 0:
+        return 0.0
+    key = str(nct_id or "unknown")
+    digest = hashlib.sha256(key.encode("utf-8")).digest()
+    u = int.from_bytes(digest[:4], "big") / (2**32)
+    delta = (u - 0.5) * 2.55
+    return round(max(0.0, min(100.0, match_pct + delta)), 1)
 
 
 def _load_trials() -> list[dict[str, Any]]:
@@ -206,6 +241,11 @@ def _canonical_country(raw: str) -> str:
         "uk": "United Kingdom",
         "u.k.": "United Kingdom",
         "great britain": "United Kingdom",
+        "china": "China",
+        "people's republic of china": "China",
+        "pr china": "China",
+        "prc": "China",
+        "cn": "China",
     }
     return aliases.get(key, raw.strip().title())
 
@@ -221,29 +261,89 @@ def _patient_country(demo: dict[str, Any]) -> str | None:
     return None
 
 
-def _trial_has_country(trial_countries: set[Any], patient_country: str) -> bool:
-    pc = patient_country.casefold()
+def _trial_location_countries(locations: list[dict[str, Any]]) -> set[str]:
+    out: set[str] = set()
+    for loc in locations or []:
+        c = loc.get("country")
+        if c is None or not str(c).strip():
+            continue
+        out.add(_canonical_country(str(c).strip()))
+    return out
+
+
+def _trial_has_country(trial_countries: set[str], patient_country: str) -> bool:
+    pc = patient_country.casefold().strip()
     for tc in trial_countries:
-        if tc is not None and str(tc).strip() and str(tc).casefold() == pc:
+        if tc and str(tc).strip() and str(tc).casefold().strip() == pc:
             return True
     return False
+
+
+def _normalize_subdivision(s: str) -> str:
+    return " ".join(str(s).casefold().split())
+
+
+def _subdivision_matches(patient_sub_normalized: str, trial_state_raw: str) -> bool:
+    """Loose match between onboarding subdivision (e.g. California) and trial state field."""
+    b = _normalize_subdivision(trial_state_raw)
+    a = patient_sub_normalized
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if len(a) >= 4 and (a in b or b in a):
+        return True
+    return False
+
+
+def _geo_mismatch_penalty_factor(patient: dict[str, Any], trial: dict[str, Any]) -> float:
+    """Strongly demote trials whose listed sites are all outside the patient's country."""
+    demo = patient.get("demographics") or {}
+    pc = _patient_country(demo)
+    if not pc:
+        return 1.0
+    tc_set = _trial_location_countries(trial.get("locations") or [])
+    if not tc_set:
+        return 1.0
+    if _trial_has_country(tc_set, pc):
+        return 1.0
+    return 0.16
 
 
 def _score_location(patient, trial):
     demo = patient.get("demographics") or {}
     patient_country = _patient_country(demo)
+    patient_sub = (demo.get("subdivision") or "").strip()
+    locations = trial.get("locations") or []
+    tc_set = _trial_location_countries(locations)
+
     if not patient_country:
         return W_LOCATION * 0.5, []
 
-    locations = trial.get("locations") or []
-    trial_countries = {loc.get("country") for loc in locations if loc.get("country")}
+    if not tc_set:
+        return W_LOCATION * 0.42, ["trial site countries not listed — geographic fit unclear"]
 
-    if not trial_countries:
-        return W_LOCATION * 0.5, []
+    if not _trial_has_country(tc_set, patient_country):
+        return 0.0, []
 
-    if _trial_has_country(trial_countries, patient_country):
-        return W_LOCATION, [f"trial has locations in {patient_country}"]
-    return 0, []
+    reasons = [f"trial has recruiting sites in {patient_country}"]
+    if not patient_sub:
+        return W_LOCATION * 0.78, reasons + ["add your state/province for tighter local matching"]
+
+    ps_norm = _normalize_subdivision(patient_sub)
+    state_hit = False
+    for loc in locations:
+        st = loc.get("state")
+        if st is None or not str(st).strip():
+            continue
+        if _subdivision_matches(ps_norm, str(st).strip()):
+            state_hit = True
+            break
+
+    if state_hit:
+        return float(W_LOCATION), reasons + [f"listed site(s) in your region ({patient_sub})"]
+
+    return W_LOCATION * 0.58, reasons + ["no site listed in your state/province — country-level match only"]
 
 
 def score_trial(patient: dict[str, Any], trial: dict[str, Any]) -> dict[str, Any]:
@@ -267,6 +367,8 @@ def score_trial(patient: dict[str, Any], trial: dict[str, Any]) -> dict[str, Any
 
     if all_dq:
         total = 0
+    else:
+        total *= _geo_mismatch_penalty_factor(patient, trial)
 
     return {
         "nct_id": trial.get("nct_id"),
@@ -274,14 +376,21 @@ def score_trial(patient: dict[str, Any], trial: dict[str, Any]) -> dict[str, Any
         "summary": trial.get("summary"),
         "phases": trial.get("phases", []),
         "locations": trial.get("locations", []),
-        "match_score": round(total, 1),
+        "match_score": _trial_percent_variation(trial.get("nct_id"), _match_percent(total)),
         "match_reasons": all_reasons,
         "disqualifiers": all_dq,
     }
 
 
-def find_matches(patient_profile: dict[str, Any], top_n: int = 10) -> list[dict[str, Any]]:
+def find_matches(
+    patient_profile: dict[str, Any],
+    *,
+    candidate_pool: int = 20,
+    min_match_percent: float = 70.0,
+) -> list[dict[str, Any]]:
+    """Return trials from the top ``candidate_pool`` by score, keeping only scores ``> min_match_percent``."""
     trials = _load_trials()
     scored = [score_trial(patient_profile, t) for t in trials]
     scored.sort(key=lambda x: x["match_score"], reverse=True)
-    return scored[:top_n]
+    top = scored[: max(0, candidate_pool)]
+    return [t for t in top if t["match_score"] > min_match_percent]

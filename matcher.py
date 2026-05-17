@@ -74,6 +74,22 @@ WEIGHT_BIOMARKER = 20
 WEIGHT_VITALS = 10
 WEIGHT_CONDITIONS = 10
 
+MAX_MATCH_POINTS = (
+    WEIGHT_AGE
+    + WEIGHT_POSTPARTUM
+    + WEIGHT_PREGNANCY
+    + WEIGHT_DIAGNOSIS
+    + WEIGHT_BIOMARKER
+    + WEIGHT_VITALS
+    + WEIGHT_CONDITIONS
+)
+
+
+def _match_percent(total: float) -> float:
+    if MAX_MATCH_POINTS <= 0:
+        return 0.0
+    return round(100.0 * float(total) / MAX_MATCH_POINTS, 1)
+
 
 def _score_age(patient: dict[str, Any], trial: dict[str, Any]) -> tuple[float, list[str]]:
     """Score based on whether patient age falls within trial's age range."""
@@ -328,7 +344,7 @@ def score_trial(patient: dict[str, Any], trial: dict[str, Any]) -> dict[str, Any
         "summary": trial.get("summary"),
         "phases": trial.get("phases", []),
         "locations": trial.get("locations", []),
-        "match_score": round(total, 1),
+        "match_score": _match_percent(total),
         "match_reasons": all_reasons,
         "disqualifiers": all_disqualifiers,
     }
@@ -336,12 +352,22 @@ def score_trial(patient: dict[str, Any], trial: dict[str, Any]) -> dict[str, Any
 
 def find_matches(
     patient_profile: dict[str, Any],
-    top_n: int = 10,
+    top_n: int | None = None,
+    *,
+    candidate_pool: int = 20,
+    min_match_percent: float = 70.0,
 ) -> list[dict[str, Any]]:
-    """Score all trials against a patient profile and return the top N matches."""
+    """Rank all trials, take the top ``pool`` by score, return those with match ``> min_match_percent``."""
+    pool = candidate_pool if top_n is None else top_n
+    if pool < 1:
+        pool = 1
+    elif pool > 50:
+        pool = 50
+
     trials = _load_trials()
 
     scored = [score_trial(patient_profile, t) for t in trials]
     scored.sort(key=lambda x: x["match_score"], reverse=True)
 
-    return scored[:top_n]
+    top = scored[:pool]
+    return [t for t in top if t["match_score"] > min_match_percent]

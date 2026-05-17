@@ -648,10 +648,10 @@ async def validate_profile(session_id: str, profile: dict[str, Any]) -> dict[str
 
 
 @app.post("/sessions/{session_id}/match")
-async def match_trials(session_id: str, top_n: int = 10) -> dict[str, Any]:
+async def match_trials(session_id: str, top_n: int = 20) -> dict[str, Any]:
     """Match the validated patient profile against clinical trials.
 
-    Returns the top N best-matched trials sorted by score.
+    Returns trials in the top ``top_n`` candidates by raw ranking that score above 70%.
     """
     session = _get_session(session_id)
 

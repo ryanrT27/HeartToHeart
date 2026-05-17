@@ -12,9 +12,14 @@ export default function LandingHero({ onFindMatch }) {
             Heart2Heart bridges the gap in women&apos;s health
             research by matching you with clinical trials that define the future of maternal cardiovascular care.
           </p>
-          <button type="button" className="hero-cta" onClick={onFindMatch}>
-            Find My Match
-          </button>
+          <div className="hero-cta-stack">
+            <button type="button" className="hero-cta" onClick={onFindMatch}>
+              Find My Match
+            </button>
+            <p className="hero-assist-blurb">
+              Unsure how to fill out your medical profile? Ask your provider for assistance!
+            </p>
+          </div>
         </div>
         <div className="hero-image-wrap">
           <img

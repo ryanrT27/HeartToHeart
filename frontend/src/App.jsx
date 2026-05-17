@@ -75,7 +75,14 @@ function App() {
             <SiteHeader activePage={null} onNavigate={goToMarketing} />
             <main className="site-main site-main--results">
               <div className="app-flow app-flow--results">
-                <Results onGoHome={() => goToMarketing("home")} trials={trials} />
+                <Results
+                  onRestart={() => {
+                    clearAssessmentSession();
+                    setTrials([]);
+                    setCurrentView("onboarding");
+                  }}
+                  trials={trials}
+                />
               </div>
             </main>
           </div>
