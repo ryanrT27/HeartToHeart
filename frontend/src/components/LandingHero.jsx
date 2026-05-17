@@ -2,8 +2,17 @@ import { useState } from "react";
 import heroImage from "../assets/heart2heart-hero.png";
 import doctorImage from "../assets/doctor.png";
 import pregnantImage from "../assets/pregnant.png";
+import megaphone1 from "../assets/megaphone 1.png";
+import chartLine1 from "../assets/chart-line 1.png";
+import pregnant1 from "../assets/pregnant 1.png";
 
 const CONTACT_EMAIL = "contact@heart2heart.health";
+
+const MISSION_CARD_IMAGES = {
+  Advocacy: megaphone1,
+  Research: chartLine1,
+  Awareness: pregnant1,
+};
 
 export default function LandingHero({ onFindMatch }) {
   const [contactName, setContactName] = useState("");
@@ -62,15 +71,22 @@ export default function LandingHero({ onFindMatch }) {
               title: "Awareness",
               text: "Many women experience symptoms that are dismissed, misdiagnosed, or unexplained. Participating in clinical trials allows women to properly monitor, evaluate, and learn new information that can improve understanding of their own health.",
             },
-          ].map(({ title, text }) => (
+          ].map(({ title, text }) => {
+            const iconSrc = MISSION_CARD_IMAGES[title];
+            return (
             <div className="mission-card" key={title}>
-              <div className="mission-card-circle" aria-hidden="true" />
+              <div className="mission-card-circle" aria-hidden="true">
+                {iconSrc ? (
+                  <img src={iconSrc} alt="" className="mission-card-circle-icon" width={34} height={34} />
+                ) : null}
+              </div>
               <div className="mission-card-body">
                 <h3 className="mission-card-title">{title}</h3>
                 <p className="mission-card-text">{text}</p>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -84,14 +100,11 @@ export default function LandingHero({ onFindMatch }) {
             alt="Doctor with arms crossed."
           />
             <div className="impact-quote-box">
-              <p className="impact-quote-text">research quote here</p>
+              <p className="impact-quote-text">According to the CDC, 85.7% of pregnancy-related deaths in 2022 were preventable.</p>
             </div>
           </div>
           <div className="impact-copy">
-            <h2 className="impact-heading">
-              big important statement&nbsp;— women are not research
-            </h2>
-            <p className="impact-body">impact statement&nbsp;&nbsp;more important info</p>
+            <p className="impact-body">With gaps in clinical care and patient knowledge identified as the leading causes of these preventable deaths, Heart2Heart exists to empower women to advocate for each other by connecting them with clinical trials that can define the future of maternal cardiovascular care.</p>
           </div>
         </div>
       </section>
