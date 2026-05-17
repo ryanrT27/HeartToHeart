@@ -5,6 +5,7 @@
 data/
 *.csv
 *.xlsx
+maternal_cardio_trials_parsed*.json
 
 # Python
 venv/
