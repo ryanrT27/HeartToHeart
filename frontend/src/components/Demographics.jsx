@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { COUNTRY_OPTIONS, subdivisionsForCountry } from "../data/geoRegions.js";
 
 const RACE_OPTIONS = [
@@ -21,9 +22,15 @@ const GENDER_OPTIONS = [
 
 export default function Demographics({ formData, setFormData, onNext, onExitAssessment }) {
   const raceSelections = formData.race_ethnicity || [];
+  
+  // NEW: State to hold our validation error message
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Clear the error message once they start typing/selecting again
+    if (errorMsg) setErrorMsg(""); 
+
     if (name === "country") {
       setFormData({ ...formData, country: value, subdivision: "" });
       return;
@@ -32,6 +39,8 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
   };
 
   const toggleRace = (id) => {
+    if (errorMsg) setErrorMsg("");
+    
     const updated = raceSelections.includes(id)
       ? raceSelections.filter((r) => r !== id)
       : [...raceSelections, id];
@@ -41,13 +50,45 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
   const subs = formData.country ? subdivisionsForCountry(formData.country) : null;
   const subSelectDisabled = !formData.country;
 
+  // NEW: Validation function before moving to the next step
+  const handleNext = () => {
+    // 1. Check all basic text/select fields
+    if (
+      !formData.age ||
+      !formData.genderIdentity ||
+      !formData.heightFeet ||
+      !formData.heightInches ||
+      !formData.weight ||
+      !formData.country
+    ) {
+      setErrorMsg("Please fill out all required fields.");
+      return;
+    }
+
+    // 2. Check conditional state/province field (if their country has states)
+    if (subs && subs.length > 0 && !formData.subdivision) {
+      setErrorMsg("Please select a state/province.");
+      return;
+    }
+
+    // 3. Check that at least one race/ethnicity is selected
+    if (raceSelections.length === 0) {
+      setErrorMsg("Please select at least one option for Race/Ethnicity.");
+      return;
+    }
+
+    // If everything is filled out, clear errors and proceed
+    setErrorMsg("");
+    onNext();
+  };
+
   return (
     <div className="demographics-screen">
       <h2 className="demographics-screen-title">Tell us about yourself below!</h2>
 
       <div className="demographics-form">
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">Age</legend>
+          <legend className="demo-input-label">Age *</legend>
           <input
             type="number"
             name="age"
@@ -60,7 +101,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
 
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">Gender identity</legend>
+          <legend className="demo-input-label">Gender identity *</legend>
           <select
             name="genderIdentity"
             className="demo-input-field demo-input-select"
@@ -76,7 +117,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
 
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">Height</legend>
+          <legend className="demo-input-label">Height *</legend>
           <div className="demo-height-row">
             <input
               type="number"
@@ -101,7 +142,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
 
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">Weight</legend>
+          <legend className="demo-input-label">Weight *</legend>
           <input
             type="number"
             name="weight"
@@ -115,7 +156,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
 
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">Country</legend>
+          <legend className="demo-input-label">Country *</legend>
           <select
             name="country"
             className="demo-input-field demo-input-select"
@@ -124,15 +165,15 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
           >
             <option value="">Select country…</option>
             {COUNTRY_OPTIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
+              <option key={c.id || c} value={c.id || c}>
+                {c.label || c}
               </option>
             ))}
           </select>
         </fieldset>
 
         <fieldset className="demo-input-shell">
-          <legend className="demo-input-label">State / Province</legend>
+          <legend className="demo-input-label">State / Province *</legend>
           <select
             name="subdivision"
             className="demo-input-field demo-input-select"
@@ -145,8 +186,8 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
             </option>
             {subs &&
               subs.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+                <option key={s.id || s} value={s.id || s}>
+                  {s.label || s}
                 </option>
               ))}
             {formData.country && subs === null && (
@@ -156,7 +197,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
 
         <fieldset className="demo-input-shell demo-input-shell--full-width">
-          <legend className="demo-input-label">Race / Ethnicity</legend>
+          <legend className="demo-input-label">Race / Ethnicity *</legend>
           <div className="demo-race-options">
             {RACE_OPTIONS.map((opt) => (
               <label key={opt.id} className="demo-race-option">
@@ -172,11 +213,19 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
       </div>
 
+      {/* NEW: Display the error message if validation fails */}
+      {errorMsg && (
+        <div style={{ color: '#890B1D', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' }}>
+          {errorMsg}
+        </div>
+      )}
+
       <div className="onboarding-step-actions">
         <button type="button" className="hero-cta onboarding-cta onboarding-cta--outline" onClick={onExitAssessment}>
           Back
         </button>
-        <button type="button" className="hero-cta onboarding-cta" onClick={onNext}>
+        {/* NEW: Call handleNext instead of onNext directly */}
+        <button type="button" className="hero-cta onboarding-cta" onClick={handleNext}>
           Next
         </button>
       </div>
