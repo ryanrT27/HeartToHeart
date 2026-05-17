@@ -407,21 +407,20 @@ body {
   min-height: 280px;
   display: flex;
   
-  /* CHANGED: Swapped 'stretch' for 'center' so the image doesn't stretch top-to-bottom */
   align-items: center; 
 }
 
 .hero-image {
   border-radius: 60px; 
   width: 100%;
-  max-width: 700px; /* From your Figma specs */
+  max-width: 700px; 
   height: auto;
   aspect-ratio: 86 / 93;
   object-fit: cover;
   display: block;
   clip-path: inset(0 0 80px 0 round 60px);
   /* CRITICAL LINE: Pushes left (-80px) and drops down (40px) */
-  transform: translate(-50px, 40px); 
+  transform: translate(-70px, 40px); 
 }
 
 .hero-floating-image {
