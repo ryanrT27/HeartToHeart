@@ -30,10 +30,10 @@ export default function LandingHero({ onFindMatch }) {
       {/* ── Hero ── */}
       <div className="hero-grid">
         <div className="hero-copy">
-          <h1 className="hero-heading">Be the Heart that Saves a Woman&apos;s Life.</h1>
+          <h1 className="hero-heading">Empowering the <br /> Hearts that Give Life.</h1>
           <p className="hero-body">
-            Heart2Heart bridges the gap in women&apos;s health research by matching
-            you with clinical trials that define the future of maternal cardiovascular care.
+            Heart2Heart is closing the gap in maternal health research. Whether you're pregnant or postpartum,
+             we match you with clinical trials built to protect your cardiovascular future.
           </p>
           <div className="hero-cta-stack">
             <button type="button" className="hero-cta" onClick={onFindMatch}>
