@@ -105,7 +105,12 @@ export default function LandingHero({ onFindMatch }) {
             alt="Doctor with arms crossed."
           />
             <div className="impact-quote-box">
-              <p className="impact-quote-text">According to the CDC, 85.7% of pregnancy-related deaths in 2022 were preventable.</p>
+              <p className="impact-quote-text">According to the <a 
+                href="https://cdc.gov/maternal-mortality/php/data-research/mmrc/index.html?cove-tab=4" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-red-600 underline hover:text-red-800 transition-colors">
+                CDC, </a> 85.7% of pregnancy-related deaths in 2022 were preventable.</p>
             </div>
           </div>
           <div className="impact-copy">

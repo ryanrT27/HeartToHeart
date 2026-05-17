@@ -3,7 +3,14 @@ export default function AboutPage() {
     <article className="marketing-page">
       <h1>The Research Gap</h1>
       <p>
-      <strong>0.8%.</strong> That is the percentage of clinical trials that included pregnant participants over the last 15 years.
+      Over the last 15 years, only <a 
+        href="https://www.sciencedirect.com/science/article/pii/S0002937825000031" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-red-600 underline hover:text-red-800 transition-colors"
+      >
+        0.8% 
+      </a> of clinical trials included pregnant participants.
       Out of nearly 91,000 randomized trials, 75% explicitly excluded pregnancy, leaving a massive data void in maternal care. 
       When we don't study pregnant bodies, we don't have the data to save them.
       </p>
@@ -15,9 +22,13 @@ export default function AboutPage() {
       </p>
       <h2>Who we serve</h2>
       <p>
-        Our onboarding flow is built for individuals navigating maternal or postpartum health journeys and for clinicians
-        who want a streamlined way to explore trial options with their patients. You stay in control of what you share and
-        what you pursue.
+      Our platform is built for all individuals navigating maternal or postpartum health journeys, with a specific commitment
+       to underrepresented people who are disproportionately impacted by cardiovascular disparities. 
+       We designed our onboarding and OCR technology to bridge the medical literacy gap, 
+       so you don't need a medical degree to understand your options. 
+       Whether you are seeking trials for cutting-edge care, financial compensation, or simply 
+       to take back control of your health data, Heart2Heart empowers you to explore what's next on your own terms. 
+       We also serve clinicians looking for a streamlined, equitable way to connect their patients with life-saving research.
       </p>
       <h2>Disclaimer</h2>
       <p>
