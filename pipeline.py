@@ -1,22 +1,27 @@
 """
-Maternal/Postpartum Cardiovascular Trials Pipeline (Local Ollama)
+Maternal/Postpartum Cardiovascular Trials Pipeline (Groq)
 
-Queries ClinicalTrials.gov for recruiting studies related to maternal/postpartum
-cardiovascular health, then uses a local Llama 3 model via Ollama to:
+Queries ClinicalTrials.gov for studies related to maternal/postpartum cardiovascular
+health (configurable overall statuses), then uses Groq-hosted Llama models to:
   1. Parse eligibility criteria into structured JSON
   2. Extract clinical diagnoses, biomarkers, and vital signs (unified schema)
 
 Prerequisites:
-    1. Install Ollama from https://ollama.com (or have it running on Windows host)
-    2. Pull and start the model:
-           ollama run llama3
-    3. Install Python dependencies:
-           pip install requests
-    4. Run:
-           python pipeline.py
+    1. Get a Groq API key: https://console.groq.com/keys
+    2. Export GROQ_API_KEY or put it in a .env file (python-dotenv).
+    3. pip install -r requirements.txt
+    4. Run: python pipeline.py
+
+Environment (optional):
+    CT_OVERALL_STATUSES — comma-separated Overall Status filters (default includes
+        RECRUITING and NOT_YET_RECRUITING for more coverage).
+    GROQ_MIN_INTERVAL_SEC — minimum seconds between LLM calls (default 0.85).
+    GROQ_PIPELINE_MODEL / GROQ_PIPELINE_FALLBACK_MODEL — override Groq model IDs.
 
 Output: maternal_cardio_trials_parsed.json (resumes from checkpoint automatically).
 """
+
+from __future__ import annotations
 
 import json
 import logging
@@ -25,6 +30,15 @@ import time
 from typing import Any
 
 import requests
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+from groq import Groq
 
 from biomarker_schema import (
     PIPELINE_BIOMARKER_PROMPT,
@@ -45,21 +59,35 @@ logger = logging.getLogger(__name__)
 CLINICALTRIALS_BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
 SEARCH_TERM = (
-    '(postpartum OR pregnant OR maternal OR pregnancy) AND '
-    '(cardiovascular OR preeclampsia OR "peripartum cardiomyopathy" '
-    'OR hypertension OR "heart failure")'
+    "(postpartum OR pregnant OR maternal OR pregnancy) AND "
+    "(cardiovascular OR preeclampsia OR \"peripartum cardiomyopathy\" "
+    "OR hypertension OR \"heart failure\")"
 )
 
 PAGE_SIZE = 50
 CT_SLEEP = 1.0
 
-# Ollama local server.
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/chat")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
-OLLAMA_TIMEOUT = 1200  # 5 minutes per request
+# Multiple statuses → more trials than RECRUITING-only (dedupe by NCT ID).
+CT_OVERALL_STATUSES = [
+    s.strip()
+    for s in os.environ.get(
+        "CT_OVERALL_STATUSES",
+        "RECRUITING,NOT_YET_RECRUITING",
+    ).split(",")
+    if s.strip()
+]
+
+GROQ_PRIMARY_MODEL = os.environ.get("GROQ_PIPELINE_MODEL", "llama-3.3-70b-versatile")
+GROQ_FALLBACK_MODEL = os.environ.get("GROQ_PIPELINE_FALLBACK_MODEL", "llama-3.1-8b-instant")
+GROQ_MIN_INTERVAL_SEC = float(os.environ.get("GROQ_MIN_INTERVAL_SEC", "0.85"))
+GROQ_TIMEOUT_SEC = float(os.environ.get("GROQ_TIMEOUT_SEC", "120"))
+GROQ_RATE_LIMIT_BACKOFF = float(os.environ.get("GROQ_RATE_LIMIT_BACKOFF_SEC", "4.0"))
 
 OUTPUT_FILE = "maternal_cardio_trials_parsed.json"
-CHECKPOINT_EVERY = 10  # save more frequently since each call is slower
+CHECKPOINT_EVERY = 10
+
+_groq_client: Groq | None = None
+_last_groq_call_monotonic: float = 0.0
 
 # Required keys in the eligibility LLM response.
 ELIGIBILITY_EXPECTED_KEYS = {
@@ -101,45 +129,79 @@ Rules:
 }
 """
 
+
 # ---------------------------------------------------------------------------
-# Ollama LLM client
+# Groq LLM client (rate-aware)
 # ---------------------------------------------------------------------------
 
 
-def _call_ollama(system_prompt: str, user_text: str) -> dict[str, Any] | None:
-    """Send a prompt to local Ollama and return parsed JSON, or None on failure."""
-    payload = {
-        "model": OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text},
-        ],
-        "format": "json",
-        "stream": False,
-    }
+def _get_groq() -> Groq:
+    global _groq_client
+    if _groq_client is None:
+        key = os.getenv("GROQ_API_KEY")
+        if not key:
+            raise RuntimeError(
+                "GROQ_API_KEY is not set. Add it to your environment or .env file."
+            )
+        _groq_client = Groq(api_key=key)
+    return _groq_client
 
-    try:
-        resp = requests.post(OLLAMA_URL, json=payload, timeout=OLLAMA_TIMEOUT)
-        resp.raise_for_status()
-    except requests.Timeout:
-        logger.error("Ollama request timed out after %ds.", OLLAMA_TIMEOUT)
-        return None
-    except requests.ConnectionError:
-        logger.error(
-            "Cannot connect to Ollama at %s. Is 'ollama serve' running?", OLLAMA_URL
-        )
-        return None
-    except requests.RequestException as exc:
-        logger.error("Ollama request failed: %s", exc)
-        return None
 
-    try:
-        result = resp.json()
-        content = result["message"]["content"]
-        return json.loads(content)
-    except (KeyError, json.JSONDecodeError) as exc:
-        logger.error("Failed to parse Ollama response as JSON: %s", exc)
-        return None
+def _groq_throttle() -> None:
+    """Space out requests to reduce rate-limit / TPM bursts."""
+    global _last_groq_call_monotonic
+    now = time.monotonic()
+    gap = now - _last_groq_call_monotonic
+    wait = GROQ_MIN_INTERVAL_SEC - gap
+    if wait > 0:
+        time.sleep(wait)
+    _last_groq_call_monotonic = time.monotonic()
+
+
+def _call_groq_json(system_prompt: str, user_text: str) -> dict[str, Any] | None:
+    """Send a prompt to Groq and return parsed JSON, or None on failure."""
+    client = _get_groq()
+
+    for model in (GROQ_PRIMARY_MODEL, GROQ_FALLBACK_MODEL):
+        _groq_throttle()
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_text},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                timeout=GROQ_TIMEOUT_SEC,
+            )
+            content = resp.choices[0].message.content
+            if not content:
+                logger.warning("Groq (%s) returned empty content.", model)
+                continue
+            return json.loads(content)
+        except json.JSONDecodeError as exc:
+            logger.error("Groq (%s) returned invalid JSON: %s", model, exc)
+            return None
+        except Exception as exc:  # noqa: BLE001
+            err = str(exc).lower()
+            if "rate" in err or "429" in err or "limit" in err:
+                logger.warning(
+                    "Groq rate limit on %s — backing off %.1fs then retrying / fallback.",
+                    model,
+                    GROQ_RATE_LIMIT_BACKOFF,
+                )
+                time.sleep(GROQ_RATE_LIMIT_BACKOFF)
+                if model == GROQ_PRIMARY_MODEL:
+                    continue
+                return None
+            logger.error("Groq request failed (%s): %s", model, exc)
+            if model == GROQ_PRIMARY_MODEL:
+                continue
+            return None
+
+    logger.error("Groq: both models failed for this request.")
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -148,51 +210,80 @@ def _call_ollama(system_prompt: str, user_text: str) -> dict[str, Any] | None:
 
 
 def fetch_all_studies() -> list[dict[str, Any]]:
-    """Fetch all pages of recruiting maternal/cardiovascular studies."""
+    """Fetch all pages for each configured overall status; dedupe by NCT ID."""
+    seen_nct: set[str] = set()
     all_studies: list[dict[str, Any]] = []
-    page_token: str | None = None
-    page_number = 0
 
-    while True:
-        page_number += 1
-        params: dict[str, Any] = {
-            "query.term": SEARCH_TERM,
-            "filter.overallStatus": "RECRUITING",
-            "pageSize": PAGE_SIZE,
-        }
-        if page_number == 1:
-            params["countTotal"] = "true"
-        if page_token:
-            params["pageToken"] = page_token
+    for overall_status in CT_OVERALL_STATUSES:
+        page_token: str | None = None
+        page_number = 0
+        logger.info("Fetching studies with filter.overallStatus=%s", overall_status)
 
-        try:
-            response = requests.get(
-                CLINICALTRIALS_BASE_URL, params=params, timeout=30
+        while True:
+            page_number += 1
+            params: list[tuple[str, str]] = [
+                ("query.term", SEARCH_TERM),
+                ("filter.overallStatus", overall_status),
+                ("pageSize", str(PAGE_SIZE)),
+            ]
+            if page_number == 1:
+                params.append(("countTotal", "true"))
+            if page_token:
+                params.append(("pageToken", page_token))
+
+            try:
+                response = requests.get(
+                    CLINICALTRIALS_BASE_URL, params=params, timeout=30
+                )
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                logger.error(
+                    "API request failed (%s page %d): %s",
+                    overall_status,
+                    page_number,
+                    exc,
+                )
+                break
+
+            data = response.json()
+
+            if page_number == 1:
+                total = data.get("totalCount", "unknown")
+                logger.info(
+                    "Total matching studies (%s): %s",
+                    overall_status,
+                    total,
+                )
+
+            studies = data.get("studies", [])
+            new_on_page = 0
+            for study in studies:
+                nct = (
+                    study.get("protocolSection", {})
+                    .get("identificationModule", {})
+                    .get("nctId")
+                )
+                if nct:
+                    if nct in seen_nct:
+                        continue
+                    seen_nct.add(nct)
+                all_studies.append(study)
+                new_on_page += 1
+
+            logger.info(
+                "%s page %d: +%d new studies (unique total: %d)",
+                overall_status,
+                page_number,
+                new_on_page,
+                len(all_studies),
             )
-            response.raise_for_status()
-        except requests.RequestException as exc:
-            logger.error("API request failed on page %d: %s", page_number, exc)
-            break
 
-        data = response.json()
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                logger.info("No more pages for status=%s.", overall_status)
+                break
 
-        if page_number == 1:
-            total = data.get("totalCount", "unknown")
-            logger.info("Total matching recruiting studies: %s", total)
-
-        studies = data.get("studies", [])
-        all_studies.extend(studies)
-        logger.info(
-            "Page %d: fetched %d studies (running total: %d)",
-            page_number, len(studies), len(all_studies),
-        )
-
-        page_token = data.get("nextPageToken")
-        if not page_token:
-            logger.info("No more pages. Done fetching.")
-            break
-
-        time.sleep(CT_SLEEP)
+            time.sleep(CT_SLEEP)
 
     return all_studies
 
@@ -239,22 +330,58 @@ def parse_study(study: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Step 3 — LLM extraction via Ollama
+# Step 3 — LLM extraction via Groq
 # ---------------------------------------------------------------------------
 
 
-def parse_eligibility_with_ollama(raw_criteria: str) -> dict[str, Any] | None:
-    """Parse eligibility text into structured criteria via local Llama."""
-    parsed = _call_ollama(ELIGIBILITY_SYSTEM_PROMPT, raw_criteria)
+def _normalize_eligibility_json(parsed: Any) -> dict[str, Any] | None:
+    """Groq occasionally returns a JSON array or a wrapped object; coerce to one dict."""
+    if isinstance(parsed, dict):
+        if ELIGIBILITY_EXPECTED_KEYS <= parsed.keys():
+            return parsed
+        for key in ("structured", "criteria", "eligibility", "extracted", "result", "data", "output"):
+            inner = parsed.get(key)
+            if isinstance(inner, dict):
+                coerced = _normalize_eligibility_json(inner)
+                if coerced is not None:
+                    return coerced
+        if len(parsed) == 1:
+            inner = next(iter(parsed.values()))
+            if isinstance(inner, dict):
+                return _normalize_eligibility_json(inner)
+        return parsed
+
+    if isinstance(parsed, list):
+        for item in parsed:
+            if isinstance(item, dict):
+                coerced = _normalize_eligibility_json(item)
+                if coerced is not None:
+                    return coerced
+        return None
+
+    return None
+
+
+def parse_eligibility_with_groq(raw_criteria: str) -> dict[str, Any] | None:
+    """Parse eligibility text into structured criteria via Groq."""
+    parsed = _call_groq_json(ELIGIBILITY_SYSTEM_PROMPT, raw_criteria)
     if parsed is None:
         return None
 
-    missing = ELIGIBILITY_EXPECTED_KEYS - parsed.keys()
+    obj = _normalize_eligibility_json(parsed)
+    if obj is None:
+        logger.warning(
+            "Eligibility response was not usable JSON object (got %s).",
+            type(parsed).__name__,
+        )
+        return None
+
+    missing = ELIGIBILITY_EXPECTED_KEYS - obj.keys()
     if missing:
         logger.warning("Eligibility response missing keys: %s", missing)
         return None
 
-    return parsed
+    return obj
 
 
 def _build_biomarker_input(metadata: dict[str, Any]) -> str | None:
@@ -288,13 +415,13 @@ def _build_biomarker_input(metadata: dict[str, Any]) -> str | None:
     return "\n\n".join(sections)
 
 
-def parse_biomarkers_with_ollama(metadata: dict[str, Any]) -> dict[str, Any] | None:
+def parse_biomarkers_with_groq(metadata: dict[str, Any]) -> dict[str, Any] | None:
     """Extract diagnoses, biomarkers, and vitals using the unified schema."""
     combined_text = _build_biomarker_input(metadata)
     if not combined_text:
         return None
 
-    parsed = _call_ollama(PIPELINE_BIOMARKER_PROMPT, combined_text)
+    parsed = _call_groq_json(PIPELINE_BIOMARKER_PROMPT, combined_text)
     if parsed is None:
         return None
 
@@ -366,7 +493,9 @@ def load_checkpoint(output_path: str) -> tuple[list[dict[str, Any]], set[str]]:
 
         if reprocess_count:
             logger.info(
-                "Checkpoint: %d complete, %d need reprocessing.", len(complete), reprocess_count
+                "Checkpoint: %d complete, %d need reprocessing.",
+                len(complete),
+                reprocess_count,
             )
         else:
             logger.info("Checkpoint: %d records already processed.", len(complete))
@@ -382,23 +511,31 @@ def load_checkpoint(output_path: str) -> tuple[list[dict[str, Any]], set[str]]:
 
 
 def main() -> None:
-    logger.info("=== Local Ollama Pipeline (model: %s, timeout: %ds) ===", OLLAMA_MODEL, OLLAMA_TIMEOUT)
+    logger.info(
+        "=== Groq pipeline (primary=%s, min_interval=%.2fs) ===",
+        GROQ_PRIMARY_MODEL,
+        GROQ_MIN_INTERVAL_SEC,
+    )
 
-    # Verify Ollama is reachable.
-    try:
-        health = requests.get("http://localhost:11434/", timeout=5)
-        health.raise_for_status()
-    except requests.RequestException:
+    if not os.getenv("GROQ_API_KEY"):
         logger.error(
-            "Cannot reach Ollama at http://localhost:11434/. "
-            "Please run 'ollama serve' or 'ollama run llama3' first."
+            "GROQ_API_KEY is not set. Add it to your environment or .env and retry."
         )
         return
 
+    try:
+        _get_groq()
+    except RuntimeError as exc:
+        logger.error("%s", exc)
+        return
+
     # Step 1: Fetch studies.
-    logger.info("Step 1: Querying ClinicalTrials.gov v2 API...")
+    logger.info(
+        "Step 1: Querying ClinicalTrials.gov (statuses: %s)...",
+        ", ".join(CT_OVERALL_STATUSES),
+    )
     raw_studies = fetch_all_studies()
-    logger.info("Total studies fetched: %d", len(raw_studies))
+    logger.info("Total unique studies fetched: %d", len(raw_studies))
 
     # Step 2: Parse metadata.
     logger.info("Step 2: Parsing study metadata...")
@@ -434,7 +571,7 @@ def main() -> None:
             elig_skipped += 1
         else:
             logger.info("[%d/%d] %s — parsing eligibility...", idx, total, nct_id)
-            structured_elig = parse_eligibility_with_ollama(raw_criteria)
+            structured_elig = parse_eligibility_with_groq(raw_criteria)
             if structured_elig is not None:
                 elig_success += 1
             else:
@@ -442,7 +579,7 @@ def main() -> None:
 
         # --- Biomarker / diagnosis / vitals extraction ---
         logger.info("[%d/%d] %s — extracting biomarkers...", idx, total, nct_id)
-        structured_bio = parse_biomarkers_with_ollama(metadata)
+        structured_bio = parse_biomarkers_with_groq(metadata)
         if structured_bio is None:
             bio_skipped += 1
         else:

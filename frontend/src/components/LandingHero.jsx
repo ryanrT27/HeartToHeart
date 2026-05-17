@@ -23,13 +23,17 @@ export default function LandingHero({ onFindMatch }) {
         <div className="hero-copy">
           <h1 className="hero-heading">Be the Heart that Saves a Woman&apos;s Life.</h1>
           <p className="hero-body">
-            Pregnancy is your heart&apos;s first &ldquo;stress test.&rdquo;&nbsp;
             Heart2Heart bridges the gap in women&apos;s health research by matching
             you with clinical trials that define the future of maternal cardiovascular care.
           </p>
-          <button type="button" className="hero-cta" onClick={onFindMatch}>
-            Find My Match
-          </button>
+          <div className="hero-cta-stack">
+            <button type="button" className="hero-cta" onClick={onFindMatch}>
+              Find My Match
+            </button>
+            <p className="hero-assist-blurb">
+              Unsure how to fill out your medical profile? Ask your provider for assistance!
+            </p>
+          </div>
         </div>
         <div className="hero-image-wrap">
           <img
@@ -108,7 +112,7 @@ export default function LandingHero({ onFindMatch }) {
             <input
               className="lp-footer-input"
               type="text"
-              placeholder="name entry"
+              placeholder="name"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
               aria-label="Your name"
@@ -116,7 +120,7 @@ export default function LandingHero({ onFindMatch }) {
             <input
               className="lp-footer-input"
               type="email"
-              placeholder="email entry"
+              placeholder="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               aria-label="Your email"
