@@ -50,6 +50,12 @@ export default function LandingHero({ onFindMatch }) {
             src={heroImage}
             alt="Three women smiling together"
           />
+          {/* baby image */}
+          <img
+            className="hero-floating-image"
+            src={pregnantImage} 
+            alt="Pregnant woman reading"
+          />
         </div>
       </div>
 

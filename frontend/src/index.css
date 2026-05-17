@@ -190,6 +190,7 @@ body {
   width: 100%;
   overflow: visible;
   padding-bottom: clamp(2.5rem, 7vw, 5.5rem);
+  background: var(--color-hero-copy-bg);
 }
 
 @media (max-width: 960px) {
@@ -249,6 +250,9 @@ body {
   flex: 1;
   width: 100%;
   min-height: min(calc(100dvh - var(--site-header-height)), 600px);
+  
+  /* NEW: Add background here */
+  background: var(--color-hero-copy-bg); 
 }
 
 @media (max-width: 960px) {
@@ -289,7 +293,9 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1.5rem;
-  background: var(--color-hero-copy-bg);
+  
+  background: transparent; 
+  transform: translateY(-50px);
 }
 
 .hero-heading {
@@ -400,17 +406,38 @@ body {
   z-index: 2;
   min-height: 280px;
   display: flex;
-  align-items: stretch;
+  
+  /* CHANGED: Swapped 'stretch' for 'center' so the image doesn't stretch top-to-bottom */
+  align-items: center; 
 }
 
 .hero-image {
+  border-radius: 60px; 
   width: 100%;
-  height: 100%;
-  min-height: min(50dvh, 480px);
-  flex: 1;
+  max-width: 700px; /* From your Figma specs */
+  height: auto;
+  aspect-ratio: 86 / 93;
   object-fit: cover;
-  object-position: center center;
   display: block;
+  clip-path: inset(0 0 80px 0 round 60px);
+  /* CRITICAL LINE: Pushes left (-80px) and drops down (40px) */
+  transform: translate(-50px, 40px); 
+}
+
+.hero-floating-image {
+  position: absolute;
+  z-index: 3; 
+  bottom: -40px; 
+  left: -140px; 
+  
+  width: 85%; 
+  
+  border-radius: 40px; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  transform-origin: bottom left; 
+  
+  transform: scale(1.28) translateX(-450px) translateY(100px);
+
 }
 
 @media (min-width: 961px) {
@@ -1462,8 +1489,7 @@ button {
 ───────────────────────────────────────────── */
 .mission-section {
   background: #c97272;
-  padding: clamp(3rem, 6vw, 5rem) var(--site-gutter-x);
-  display: flex;
+  padding: clamp(15rem, 12vw, 11rem) var(--site-gutter-x) clamp(3rem, 6vw, 5rem);  display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(3.1rem, 5.75vw, 3.75rem);
