@@ -104,6 +104,7 @@ export default function LandingHero({ onFindMatch }) {
             </div>
           </div>
           <div className="impact-copy">
+            <h2 className="impact-quote-heading">The Reality</h2>
             <p className="impact-body">With gaps in clinical care and patient knowledge identified as the leading causes of these preventable deaths, Heart2Heart exists to empower women to advocate for each other by connecting them with clinical trials that can define the future of maternal cardiovascular care.</p>
           </div>
         </div>

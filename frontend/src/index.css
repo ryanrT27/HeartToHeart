@@ -1592,6 +1592,7 @@ button {
 }
 
 .doctor-image {
+  margin-top: -80px;
   width: 100%;
   display: block;
   min-height: min(420px, 55vw);
@@ -1604,15 +1605,16 @@ button {
 .impact-quote-box {
   position: absolute;
   z-index: 2;
-  left: clamp(8%, 14%, 18%);
+  left: clamp(12%, 18%, 22%);
   right: clamp(-1rem, -6vw, -2.5rem);
   bottom: clamp(2.5%, 8%, 14%);
   width: auto;
   margin: 0;
   padding: clamp(1.1rem, 3vw, 1.65rem) clamp(1.5rem, 4vw, 2.25rem);
   background: var(--color-impact-quote-bg);
-  border-radius: 999px;
+  border-radius: 20px;
   box-shadow: 0 14px 36px rgba(62, 22, 26, 0.22);
+  transform: translateX(20px);
 }
 
 .impact-quote-text {
@@ -1815,3 +1817,25 @@ button {
   margin-inline: auto;
   width: 100%;
 }
+
+.impact-quote-heading {
+  /* Stealing the exact typography from .mission-heading */
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  font-weight: 700;
+  
+  
+  color: #890B1D; 
+  
+  transform: translateY(-50px); /* Tweak this number to move it higher or lower */
+  
+  /* 2. Control the exact gap between the header and the paragraph below it */
+  margin-bottom: 8px; /* Tweak this to bring the paragraph closer or further away */
+  margin-top: 0;
+}
+
+.impact-body {
+  transform: translateY(-50px);
+  margin-top: 0;
+}
+
