@@ -1,135 +1,158 @@
 import { useState } from 'react'
+import Demographics from './Demographics'
+import Pregnancy from './Pregnancy'
+import HealthHistory from './HealthHistory'
+import FileUpload from './FileUpload'
+import ReviewEdit from './ReviewEdit'
+import { submitData, matchTrials } from '../api'
+
+function buildProfile(formData, extractions) {
+  const ft = parseFloat(formData.heightFeet) || 0
+  const inches = parseFloat(formData.heightInches) || 0
+  const height_cm = (ft * 12 + inches) * 2.54 || null
+  const weight_kg = formData.weight ? parseFloat(formData.weight) / 2.205 : null
+  const age = formData.age ? parseInt(formData.age) : null
+
+  let bmi = null
+  if (height_cm && weight_kg) {
+    bmi = Math.round((weight_kg / (height_cm / 100) ** 2) * 10) / 10
+  }
+
+  const profile = {
+    demographics: {
+      age,
+      race_ethnicity: formData.race_ethnicity || [],
+      height_cm,
+      weight_kg,
+      bmi,
+      zip_code: formData.zipCode || null,
+      radius_miles: formData.searchRadius ? parseInt(formData.searchRadius) : null,
+    },
+    pregnancy: {
+      currently_pregnant: formData.pregnancyStatus === 'pregnant' ? true : formData.pregnancyStatus === 'delivered' ? false : null,
+      current_week: formData.currentWeek ? parseInt(formData.currentWeek) : null,
+      pregnancy_type: formData.pregnancyStatus === 'pregnant' ? (formData.pregnancyType || null) : null,
+      delivery_date: formData.deliveryDate || null,
+      delivery_type: formData.pregnancyStatus === 'delivered' ? (formData.deliveryType || null) : null,
+    },
+    health_history: {
+      currently_breastfeeding: formData.breastfeeding === 'yes' ? true : formData.breastfeeding === 'no' ? false : null,
+      smoking_status: formData.smoking || null,
+    },
+    diagnoses: {
+      preeclampsia: false, preeclampsia_onset: null, hellp_syndrome: false,
+      gestational_hypertension: false, peripartum_cardiomyopathy: false,
+      gestational_diabetes: false, preterm_delivery: false, delivery_week: null,
+    },
+    biomarkers: Object.fromEntries(
+      ['sflt1_plgf_ratio','nt_probnp','troponin_t','proteinuria','hba1c','hemoglobin','fasting_glucose','total_cholesterol']
+        .map(k => [k, { value: null, unit: null, high_risk: null }])
+    ),
+    vitals: {
+      systolic_bp: { value: null, unit: null, flag: null, severe: null },
+      diastolic_bp: { value: null, unit: null, flag: null, severe: null },
+      resting_heart_rate: { value: null, unit: null, flag: null },
+    },
+  }
+
+  for (const ext of extractions) {
+    if (!ext) continue
+    const ed = ext.diagnoses || {}
+    for (const key of Object.keys(profile.diagnoses)) {
+      if (typeof profile.diagnoses[key] === 'boolean') {
+        if (ed[key] === true) profile.diagnoses[key] = true
+      } else if (profile.diagnoses[key] == null && ed[key] != null) {
+        profile.diagnoses[key] = ed[key]
+      }
+    }
+    const eb = ext.biomarkers || {}
+    for (const key of Object.keys(profile.biomarkers)) {
+      if (profile.biomarkers[key].value == null && eb[key]?.value != null)
+        profile.biomarkers[key] = { ...eb[key] }
+    }
+    const ev = ext.vitals || {}
+    for (const key of Object.keys(profile.vitals)) {
+      if (profile.vitals[key].value == null && ev[key]?.value != null)
+        profile.vitals[key] = { ...ev[key] }
+    }
+    const edemo = ext.demographics || {}
+    for (const key of Object.keys(profile.demographics)) {
+      if (profile.demographics[key] == null && edemo[key] != null)
+        profile.demographics[key] = edemo[key]
+    }
+    const epreg = ext.pregnancy || {}
+    for (const key of Object.keys(profile.pregnancy)) {
+      if (profile.pregnancy[key] == null && epreg[key] != null)
+        profile.pregnancy[key] = epreg[key]
+    }
+    const ehh = ext.health_history || {}
+    for (const key of Object.keys(profile.health_history)) {
+      if (profile.health_history[key] == null && ehh[key] != null)
+        profile.health_history[key] = ehh[key]
+    }
+  }
+
+  return profile
+}
 
 export default function Onboarding({ setCurrentView, setTrials }) {
   const [screen, setScreen] = useState(1)
   const [formData, setFormData] = useState({
-    age: '', race: '', heightFeet: '', heightInches: '', weight: '', zipCode: '',
-    searchRadius: '', pregnancyStatus: '', weeks: '', babyCount: '', breastfeeding: '', smoking: '',
+    age: '', race_ethnicity: [], heightFeet: '', heightInches: '', weight: '',
+    zipCode: '', searchRadius: '', pregnancyStatus: '', currentWeek: '',
+    pregnancyType: '', deliveryDate: '', deliveryType: '', breastfeeding: '', smoking: '',
   })
+  const [profile, setProfile] = useState(null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+  const handleFilesDone = (extractions) => {
+    setProfile(buildProfile(formData, extractions))
+    setScreen(5)
   }
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    setScreen(5) // Show loading screen
-
-    const uploadData = new FormData()
-    uploadData.append("file", file)
-    uploadData.append("patient_info", JSON.stringify(formData))
-
+  const handleSubmit = async () => {
+    setError(null)
+    setLoading(true)
+    setScreen(6)
     try {
-      const response = await fetch("http://localhost:8000/api/upload-and-parse", {
-        method: "POST", body: uploadData
-      })
-      const data = await response.json()
-      
-      setTrials(data.trials || [
-        { title: "Mock Trial: Postpartum Preeclampsia Study", link: "#", location: "Los Angeles, CA" },
-        { title: "Mock Trial: Gestational Diabetes Follow-up", link: "#", location: "Irvine, CA" }
-      ])
-      setCurrentView('results') 
-      
-    } catch (error) {
-      console.error("Backend error:", error)
+      const submitRes = await submitData(profile)
+      const matchRes = await matchTrials(submitRes.confirmed_data)
+      setTrials(matchRes.trials)
       setCurrentView('results')
+    } catch (err) {
+      setError(err.message)
+      setScreen(5)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Styles just for the card
+  const errorBanner = error && (
+    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 14, marginBottom: 8, display: 'flex', alignItems: 'center' }}>
+      {error}
+      <button onClick={() => setError(null)} style={{ marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+    </div>
+  )
+
   const cardStyle = {
     backgroundColor: '#ffffff', padding: '40px', borderRadius: '16px',
-    boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '500px',
-    display: 'flex', flexDirection: 'column', gap: '20px'
+    boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '560px',
+    display: 'flex', flexDirection: 'column', gap: '16px',
   }
-  const headingStyle = { margin: 0, color: '#1e293b', fontSize: '24px', paddingBottom: '10px' }
-  const labelStyle = { display: 'flex', flexDirection: 'column', fontWeight: '500', color: '#475569', gap: '6px', flex: 1 }
-  const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box', fontSize: '16px' }
-  const buttonStyle = { padding: '14px', backgroundColor: '#d6336c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }
 
   return (
     <div style={cardStyle}>
-      <h1 style={{ color: '#d6336c', margin: '0 0 10px 0', textAlign: 'center' }}>Heart2Heart</h1>
-      
-      {screen === 1 && (
-        <>
-          <h2 style={headingStyle}>Patient Information</h2>
-          <label style={labelStyle}>Age: <input type="number" name="age" onChange={handleInputChange} style={inputStyle} /></label>
-          <label style={labelStyle}>Race/Ethnicity: <input type="text" name="race" onChange={handleInputChange} style={inputStyle} /></label>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <label style={labelStyle}>Height (ft): <input type="number" name="heightFeet" onChange={handleInputChange} style={inputStyle}/></label>
-            <label style={labelStyle}>Height (in): <input type="number" name="heightInches" onChange={handleInputChange} style={inputStyle}/></label>
-            <label style={labelStyle}>Weight (lbs): <input type="number" name="weight" onChange={handleInputChange} style={inputStyle}/></label>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <label style={labelStyle}>Zip Code: <input type="text" name="zipCode" onChange={handleInputChange} style={inputStyle}/></label>
-            <label style={labelStyle}>Radius: <input type="number" name="searchRadius" onChange={handleInputChange} style={inputStyle}/></label>
-          </div>
-          <button onClick={() => setScreen(2)} style={buttonStyle}>Next</button>
-        </>
-      )}
-
-      {screen === 2 && (
-        <>
-          <h2 style={headingStyle}>Pregnancy Status</h2>
-          {!formData.pregnancyStatus ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={() => setFormData({ ...formData, pregnancyStatus: 'pregnant' })} style={{...buttonStyle, backgroundColor: '#4f46e5'}}>Currently Pregnant</button>
-              <button onClick={() => setFormData({ ...formData, pregnancyStatus: 'delivered' })} style={{...buttonStyle, backgroundColor: '#4f46e5'}}>Recently Delivered</button>
-            </div>
-          ) : (
-            <>
-              <p><strong>Status:</strong> {formData.pregnancyStatus === 'pregnant' ? "Currently Pregnant" : "Postpartum"}</p>
-              <label style={labelStyle}>Timeframe:<input type="text" name="weeks" onChange={handleInputChange} style={inputStyle} /></label>
-              <label style={labelStyle}>Pregnancy Type:
-                <select name="babyCount" onChange={handleInputChange} style={inputStyle}>
-                  <option value="">Select...</option><option value="single">Single Baby</option><option value="multiple">Multiple</option>
-                </select>
-              </label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setScreen(1)} style={{...buttonStyle, backgroundColor: '#94a3b8', flex: 1}}>Back</button>
-                <button onClick={() => setScreen(3)} style={{...buttonStyle, flex: 1}}>Next</button>
-              </div>
-            </>
-          )}
-        </>
-      )}
-
-      {screen === 3 && (
-        <>
-          <h2 style={headingStyle}>Health History</h2>
-          <label style={labelStyle}>Breastfeeding Status:
-            <select name="breastfeeding" onChange={handleInputChange} style={inputStyle}>
-              <option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option><option value="partial">Partial</option>
-            </select>
-          </label>
-          <label style={labelStyle}>Smoking History:
-            <select name="smoking" onChange={handleInputChange} style={inputStyle}>
-              <option value="">Select...</option><option value="never">Never</option><option value="former">Former</option><option value="current">Current</option>
-            </select>
-          </label>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => setScreen(2)} style={{...buttonStyle, backgroundColor: '#94a3b8', flex: 1}}>Back</button>
-            <button onClick={() => setScreen(4)} style={{...buttonStyle, flex: 1}}>Next: Documents</button>
-          </div>
-        </>
-      )}
-
-      {screen === 4 && (
-        <>
-          <h2 style={headingStyle}>Upload Documents</h2>
-          <input type="file" onChange={handleFileUpload} style={{ padding: '40px 20px', border: '2px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', cursor: 'pointer' }} />
-          <button onClick={() => setScreen(3)} style={{...buttonStyle, backgroundColor: '#94a3b8'}}>Back</button>
-        </>
-      )}
-
-      {screen === 5 && (
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={headingStyle}>Processing...</h2>
-          <p style={{ color: '#475569' }}>Securely parsing documents.</p>
+      {errorBanner}
+      {screen === 1 && <Demographics formData={formData} setFormData={setFormData} onNext={() => setScreen(2)} />}
+      {screen === 2 && <Pregnancy formData={formData} setFormData={setFormData} onNext={() => setScreen(3)} onBack={() => setScreen(1)} />}
+      {screen === 3 && <HealthHistory formData={formData} setFormData={setFormData} onNext={() => setScreen(4)} onBack={() => setScreen(2)} />}
+      {screen === 4 && <FileUpload onComplete={handleFilesDone} onBack={() => setScreen(3)} />}
+      {screen === 5 && profile && <ReviewEdit profile={profile} setProfile={setProfile} onSubmit={handleSubmit} onBack={() => setScreen(4)} />}
+      {screen === 6 && (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <div className="spinner" />
+          <p style={{ color: '#475569', marginTop: 16 }}>Finding matching trials...</p>
         </div>
       )}
     </div>
