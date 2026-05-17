@@ -872,6 +872,17 @@ button {
   max-width: 36rem;
 }
 
+.demographics-validation-msg {
+  font-family: var(--font-serif);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-hero-heading);
+  text-align: center;
+  margin: -0.25rem auto 0.85rem;
+  max-width: 36rem;
+  line-height: 1.55;
+}
+
 .onboarding-form-single {
   display: flex;
   flex-direction: column;

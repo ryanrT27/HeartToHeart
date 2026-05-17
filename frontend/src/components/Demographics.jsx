@@ -213,12 +213,7 @@ export default function Demographics({ formData, setFormData, onNext, onExitAsse
         </fieldset>
       </div>
 
-      {/* NEW: Display the error message if validation fails */}
-      {errorMsg && (
-        <div style={{ color: '#890B1D', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' }}>
-          {errorMsg}
-        </div>
-      )}
+      {errorMsg && <p className="demographics-validation-msg">{errorMsg}</p>}
 
       <div className="onboarding-step-actions">
         <button type="button" className="hero-cta onboarding-cta onboarding-cta--outline" onClick={onExitAssessment}>
