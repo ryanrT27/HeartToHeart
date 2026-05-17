@@ -1,17 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Demographics from './Demographics'
 import Pregnancy from './Pregnancy'
 import HealthHistory from './HealthHistory'
 import FileUpload from './FileUpload'
 import ReviewEdit from './ReviewEdit'
 import { submitData, matchTrials } from '../api'
+import {
+  loadAssessmentSession,
+  saveAssessmentSession,
+  clearAssessmentSession,
+  DEFAULT_ASSESSMENT_FORM,
+} from '../assessmentSession'
+
+const INITIAL_UPLOAD_STATE = { files: [], extractions: [] }
 
 function buildProfile(formData, extractions) {
   const ft = parseFloat(formData.heightFeet) || 0
   const inches = parseFloat(formData.heightInches) || 0
   const height_cm = (ft * 12 + inches) * 2.54 || null
   const weight_kg = formData.weight ? parseFloat(formData.weight) / 2.205 : null
-  const age = formData.age ? parseInt(formData.age) : null
+  const age = formData.age ? parseInt(formData.age, 10) : null
 
   let bmi = null
   if (height_cm && weight_kg) {
@@ -33,7 +41,7 @@ function buildProfile(formData, extractions) {
     },
     pregnancy: {
       currently_pregnant: formData.pregnancyStatus === 'pregnant' ? true : formData.pregnancyStatus === 'delivered' ? false : null,
-      current_week: formData.currentWeek ? parseInt(formData.currentWeek) : null,
+      current_week: formData.currentWeek ? parseInt(formData.currentWeek, 10) : null,
       pregnancy_type: formData.pregnancyStatus === 'pregnant' ? (formData.pregnancyType || null) : null,
       delivery_date: formData.deliveryDate || null,
       delivery_type: formData.pregnancyStatus === 'delivered' ? (formData.deliveryType || null) : null,
@@ -98,19 +106,30 @@ function buildProfile(formData, extractions) {
   return profile
 }
 
-export default function Onboarding({ setCurrentView, setTrials }) {
-  const [screen, setScreen] = useState(1)
-  const [formData, setFormData] = useState({
-    age: '', race_ethnicity: [], heightFeet: '', heightInches: '', weight: '',
-    country: '', subdivision: '', genderIdentity: '', pregnancyStatus: '', currentWeek: '',
-    pregnancyType: '', deliveryDate: '', deliveryType: '', breastfeeding: '', smoking: '',
-  })
-  const [profile, setProfile] = useState(null)
+export default function Onboarding({ setCurrentView, setTrials, onExitAssessment }) {
+  const persisted = loadAssessmentSession()
+
+  const [screen, setScreen] = useState(persisted?.screen ?? 1)
+  const [formData, setFormData] = useState(() =>
+    persisted?.formData ? { ...DEFAULT_ASSESSMENT_FORM, ...persisted.formData } : { ...DEFAULT_ASSESSMENT_FORM },
+  )
+  const [profile, setProfile] = useState(persisted?.profile ?? null)
+  const [uploadState, setUploadState] = useState(() => persisted?.uploadState ?? { ...INITIAL_UPLOAD_STATE })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const handleFilesDone = (extractions) => {
-    setProfile(buildProfile(formData, extractions))
+  useEffect(() => {
+    if (screen !== 5 || profile != null) return
+    setProfile(buildProfile(formData, uploadState.extractions))
+  }, [screen, profile, formData, uploadState.extractions])
+
+  useEffect(() => {
+    if (screen === 6) return
+    saveAssessmentSession({ screen, formData, profile, uploadState })
+  }, [screen, formData, profile, uploadState])
+
+  const handleFilesDone = (extractionsFromUpload) => {
+    setProfile(buildProfile(formData, extractionsFromUpload))
     setScreen(5)
   }
 
@@ -122,6 +141,7 @@ export default function Onboarding({ setCurrentView, setTrials }) {
       const submitRes = await submitData(profile)
       const matchRes = await matchTrials(submitRes.confirmed_data)
       setTrials(matchRes.trials)
+      clearAssessmentSession()
       setCurrentView('results')
     } catch (err) {
       setError(err.message)
@@ -134,7 +154,7 @@ export default function Onboarding({ setCurrentView, setTrials }) {
   const errorBanner = error && (
     <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 14, marginBottom: 8, display: 'flex', alignItems: 'center' }}>
       {error}
-      <button onClick={() => setError(null)} style={{ marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+      <button type="button" onClick={() => setError(null)} style={{ marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
     </div>
   )
 
@@ -144,7 +164,7 @@ export default function Onboarding({ setCurrentView, setTrials }) {
     borderRadius: 0,
     boxShadow: 'none',
     width: '100%',
-    maxWidth: '640px',
+    maxWidth: '920px',
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
@@ -153,11 +173,46 @@ export default function Onboarding({ setCurrentView, setTrials }) {
   return (
     <div style={cardStyle}>
       {errorBanner}
-      {screen === 1 && <Demographics formData={formData} setFormData={setFormData} onNext={() => setScreen(2)} />}
-      {screen === 2 && <Pregnancy formData={formData} setFormData={setFormData} onNext={() => setScreen(3)} onBack={() => setScreen(1)} />}
-      {screen === 3 && <HealthHistory formData={formData} setFormData={setFormData} onNext={() => setScreen(4)} onBack={() => setScreen(2)} />}
-      {screen === 4 && <FileUpload onComplete={handleFilesDone} onBack={() => setScreen(3)} />}
-      {screen === 5 && profile && <ReviewEdit profile={profile} setProfile={setProfile} onSubmit={handleSubmit} onBack={() => setScreen(4)} />}
+      {screen === 1 && (
+        <Demographics
+          formData={formData}
+          setFormData={setFormData}
+          onNext={() => setScreen(2)}
+          onExitAssessment={onExitAssessment}
+        />
+      )}
+      {screen === 2 && (
+        <Pregnancy
+          formData={formData}
+          setFormData={setFormData}
+          onNext={() => setScreen(3)}
+          onBackToDemographics={() => setScreen(1)}
+        />
+      )}
+      {screen === 3 && (
+        <HealthHistory
+          formData={formData}
+          setFormData={setFormData}
+          onNext={() => setScreen(4)}
+          onBack={() => setScreen(2)}
+        />
+      )}
+      {screen === 4 && (
+        <FileUpload
+          uploadState={uploadState}
+          setUploadState={setUploadState}
+          onComplete={handleFilesDone}
+          onBack={() => setScreen(3)}
+        />
+      )}
+      {screen === 5 && profile && (
+        <ReviewEdit
+          profile={profile}
+          setProfile={setProfile}
+          onSubmit={handleSubmit}
+          onBack={() => setScreen(4)}
+        />
+      )}
       {screen === 6 && (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <div className="spinner" />

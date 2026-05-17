@@ -22,11 +22,11 @@ export default function LandingHero({ onFindMatch }) {
           />
         </div>
       </div>
-      <footer className="home-footer" id="contact" aria-label="Contact">
+      {/* <footer className="home-footer" id="contact" aria-label="Contact">
         <a href={`mailto:${CONTACT_EMAIL}`} className="home-footer-link">
           Contact us
         </a>
-      </footer>
+      </footer> */}
     </>
   )
 }

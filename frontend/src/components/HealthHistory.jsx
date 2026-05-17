@@ -4,32 +4,59 @@ export default function HealthHistory({ formData, setFormData, onNext, onBack })
   };
 
   return (
-    <>
-      <h2 className="screen-heading">Health History</h2>
+    <div className="demographics-screen">
+      <h2 className="demographics-screen-title">Tell us about your health history below!</h2>
 
-      <label className="field">
-        Currently breastfeeding?
-        <select name="breastfeeding" value={formData.breastfeeding || ""} onChange={handleChange}>
-          <option value="">Select...</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
-      </label>
+      <div className="onboarding-form-single">
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Currently breastfeeding?</legend>
+          <select
+            name="breastfeeding"
+            className="demo-input-field demo-input-select"
+            value={formData.breastfeeding || ""}
+            onChange={handleChange}
+          >
+            <option value="">Select…</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </fieldset>
 
-      <label className="field">
-        Smoking history
-        <select name="smoking" value={formData.smoking || ""} onChange={handleChange}>
-          <option value="">Select...</option>
-          <option value="never">Never</option>
-          <option value="former">Former</option>
-          <option value="current">Current</option>
-        </select>
-      </label>
+        <fieldset className="demo-input-shell">
+          <legend className="demo-input-label">Smoking history</legend>
+          <select
+            name="smoking"
+            className="demo-input-field demo-input-select"
+            value={formData.smoking || ""}
+            onChange={handleChange}
+          >
+            <option value="">Select…</option>
+            <option value="never">Never</option>
+            <option value="former">Former</option>
+            <option value="current">Current</option>
+          </select>
+        </fieldset>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button className="btn-back" onClick={onBack}>Back</button>
-        <button className="btn-primary" onClick={onNext}>Next: Documents</button>
+        <fieldset className="demo-input-shell demo-input-shell--optional-note">
+          <legend className="demo-input-label">Anything else we should know?</legend>
+          {/* Free response is display-only; not saved to session or submitted */}
+          <textarea
+            className="demo-input-field demo-input-textarea"
+            rows={4}
+            placeholder="Optional — share anything that might help us understand your situation and match you."
+            aria-label="Anything else we should know?"
+          />
+        </fieldset>
       </div>
-    </>
+
+      <div className="onboarding-step-actions">
+        <button type="button" className="hero-cta onboarding-cta onboarding-cta--outline" onClick={onBack}>
+          Back
+        </button>
+        <button type="button" className="hero-cta onboarding-cta" onClick={onNext}>
+          Next: Documents
+        </button>
+      </div>
+    </div>
   );
 }

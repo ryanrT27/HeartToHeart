@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { COUNTRY_OPTIONS, subdivisionsForCountry } from "../data/geoRegions.js";
 
 const RACE_OPTIONS = [
@@ -20,8 +19,8 @@ const GENDER_OPTIONS = [
   { value: "another_identity", label: "Another identity" },
 ];
 
-export default function Demographics({ formData, setFormData, onNext }) {
-  const [raceSelections, setRaceSelections] = useState(formData.race_ethnicity || []);
+export default function Demographics({ formData, setFormData, onNext, onExitAssessment }) {
+  const raceSelections = formData.race_ethnicity || [];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,7 +35,6 @@ export default function Demographics({ formData, setFormData, onNext }) {
     const updated = raceSelections.includes(id)
       ? raceSelections.filter((r) => r !== id)
       : [...raceSelections, id];
-    setRaceSelections(updated);
     setFormData({ ...formData, race_ethnicity: updated });
   };
 
@@ -174,9 +172,14 @@ export default function Demographics({ formData, setFormData, onNext }) {
         </fieldset>
       </div>
 
-      <button type="button" className="hero-cta demographics-next" onClick={onNext}>
-        Next
-      </button>
+      <div className="onboarding-step-actions">
+        <button type="button" className="hero-cta onboarding-cta onboarding-cta--outline" onClick={onExitAssessment}>
+          Back
+        </button>
+        <button type="button" className="hero-cta onboarding-cta" onClick={onNext}>
+          Next
+        </button>
+      </div>
     </div>
   );
 }

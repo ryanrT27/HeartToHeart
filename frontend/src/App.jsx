@@ -5,6 +5,7 @@ import AboutPage from "./components/AboutPage";
 import PrivacyPage from "./components/PrivacyPage";
 import Onboarding from "./components/Onboarding";
 import Results from "./components/Results";
+import { clearAssessmentSession } from "./assessmentSession";
 
 const ONBOARDING_LEAVE_WARNING =
   "You have matching information in progress. If you leave this page, your progress will be lost. Continue?";
@@ -19,11 +20,14 @@ function App() {
     setCurrentView("marketing");
   };
 
-  const navigateMarketingFromOnboarding = (page) => {
+  const exitAssessmentWithConfirm = (page = "home") => {
     if (!window.confirm(ONBOARDING_LEAVE_WARNING)) return;
+    clearAssessmentSession();
     setMarketingPage(page);
     setCurrentView("marketing");
   };
+
+  const navigateMarketingFromOnboarding = (page) => exitAssessmentWithConfirm(page);
 
   return (
     <div className="app-root">
@@ -54,7 +58,11 @@ function App() {
             <SiteHeader activePage={null} onNavigate={navigateMarketingFromOnboarding} />
             <main className="site-main site-main--onboarding">
               <div className="app-flow app-flow--onboarding">
-                <Onboarding setCurrentView={setCurrentView} setTrials={setTrials} />
+                <Onboarding
+                  setCurrentView={setCurrentView}
+                  setTrials={setTrials}
+                  onExitAssessment={() => exitAssessmentWithConfirm("home")}
+                />
               </div>
             </main>
           </div>
