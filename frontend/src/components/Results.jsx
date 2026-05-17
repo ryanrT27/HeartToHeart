@@ -124,14 +124,36 @@ export default function Results({ onRestart, trials }) {
                 <div className="trial-card-header">
                   <div className="trial-card-main">
                     <h3 className="trial-card-title">{trial.title}</h3>
-                    <a
-                      className="trial-nct-link"
-                      href={`https://clinicaltrials.gov/study/${trial.nct_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {trial.nct_id}
-                    </a>
+                    <div className="trial-card-official-row">
+                      {trial.nct_id ? (
+                        <span className="trial-nct-id">{trial.nct_id}</span>
+                      ) : (
+                        <span className="trial-nct-id trial-nct-id--muted">—</span>
+                      )}
+                      {trial.nct_id ? (
+                        <a
+                          className="trial-official-link"
+                          href={`https://clinicaltrials.gov/study/${trial.nct_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View official listing for ${trial.nct_id} on ClinicalTrials.gov (opens in new tab)`}
+                        >
+                          View official listing
+                          <svg
+                            className="trial-official-link-icon"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.6l-9.8 9.8 1.4 1.4L19 6.4V10h2V3h-7z"
+                            />
+                          </svg>
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 
