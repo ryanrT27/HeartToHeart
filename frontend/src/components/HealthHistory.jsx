@@ -43,7 +43,7 @@ export default function HealthHistory({ formData, setFormData, onNext, onBack })
           <textarea
             className="demo-input-field demo-input-textarea"
             rows={4}
-            placeholder="Optional — share anything that might help us understand your situation and match you."
+            placeholder="Optional! Share anything that might help us understand your situation and match you."
             aria-label="Anything else we should know?"
           />
         </fieldset>

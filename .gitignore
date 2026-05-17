@@ -1,8 +1,8 @@
 # Secrets & env
 .env
 
-# Data files
-data/
+# Data files (repo root only — do not ignore frontend/src/data/)
+/data/
 *.csv
 *.xlsx
 maternal_cardio_trials_parsed*.json
