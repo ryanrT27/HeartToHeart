@@ -1,4 +1,6 @@
-const CONTACT_EMAIL = "contact@heart2heart.health"
+import heroImage from "../assets/heart2heart-hero.png";
+
+const CONTACT_EMAIL = "contact@heart2heart.health";
 
 export default function LandingHero({ onFindMatch }) {
   return (
@@ -17,7 +19,7 @@ export default function LandingHero({ onFindMatch }) {
         <div className="hero-image-wrap">
           <img
             className="hero-image"
-            src="/images/heart2heart-hero.png"
+            src={heroImage}
             alt="Three women smiling together"
           />
         </div>
