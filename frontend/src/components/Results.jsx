@@ -3,34 +3,39 @@ import { commaList, formatLocation, scalarDisplay } from "../formatDisplay";
 export default function Results({ onGoHome, trials }) {
   if (!trials || trials.length === 0) {
     return (
-      <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
-        <h2 style={{ color: '#d6336c' }}>No Matches Found</h2>
-        <p style={{ color: '#475569' }}>
-          We couldn't find any matching clinical trials for your profile. Try adjusting your information and searching again.
+      <div className="demographics-screen results-screen">
+        <h2 className="demographics-screen-title">No Matches Found</h2>
+        <p className="onboarding-lead">
+          We couldn&apos;t find any clinical trials that match your profile yet. Try adjusting your information and
+          searching again.
         </p>
-        <button className="btn-primary" onClick={onGoHome} style={{ marginTop: 20 }}>Start Over</button>
+        <div className="results-actions">
+          <button type="button" className="hero-cta onboarding-cta" onClick={onGoHome}>
+            Start over
+          </button>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 800, margin: '0 auto' }}>
-      <h1 style={{ color: '#d6336c', marginBottom: 10 }}>Your Clinical Trial Matches</h1>
-      <p style={{ color: '#475569', marginBottom: 24, fontSize: 14 }}>
-        Top {trials.length} trials ranked by relevance to your profile.
+    <div className="demographics-screen results-screen">
+      <h2 className="demographics-screen-title">Your Clinical Trial Matches</h2>
+      <p className="onboarding-lead">
+        Top {trials.length} {trials.length === 1 ? "trial" : "trials"} ranked by relevance to your profile.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="results-trial-list">
         {trials.map((trial, idx) => (
-          <div key={trial.nct_id || idx} className="trial-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: 16, color: '#1e293b' }}>{trial.title}</h3>
+          <article key={trial.nct_id || idx} className="trial-card">
+            <div className="trial-card-header">
+              <div className="trial-card-main">
+                <h3 className="trial-card-title">{trial.title}</h3>
                 <a
+                  className="trial-nct-link"
                   href={`https://clinicaltrials.gov/study/${trial.nct_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 12, color: '#3b82f6' }}
                 >
                   {trial.nct_id}
                 </a>
@@ -39,51 +44,56 @@ export default function Results({ onGoHome, trials }) {
             </div>
 
             {trial.phases && trial.phases.length > 0 && (
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                Phase: {commaList(trial.phases)}
-              </div>
+              <div className="trial-meta-line">Phase: {commaList(trial.phases)}</div>
             )}
 
             {trial.summary && (
-              <p style={{ fontSize: 13, color: '#475569', margin: '8px 0 0', lineHeight: 1.4 }}>
-                {trial.summary.length > 200 ? trial.summary.slice(0, 200) + '...' : trial.summary}
+              <p className="trial-summary">
+                {trial.summary.length > 200 ? `${trial.summary.slice(0, 200)}…` : trial.summary}
               </p>
             )}
 
             {trial.match_reasons && trial.match_reasons.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+              <div className="trial-pill-row">
                 {trial.match_reasons.map((r, i) => (
-                  <span key={i} className="reason-pill">{scalarDisplay(r)}</span>
+                  <span key={i} className="reason-pill">
+                    {scalarDisplay(r)}
+                  </span>
                 ))}
               </div>
             )}
 
             {trial.disqualifiers && trial.disqualifiers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+              <div className="trial-pill-row">
                 {trial.disqualifiers.map((dq, i) => (
-                  <span key={i} className="dq-pill">{scalarDisplay(dq)}</span>
+                  <span key={i} className="dq-pill">
+                    {scalarDisplay(dq)}
+                  </span>
                 ))}
               </div>
             )}
 
             {trial.locations && trial.locations.length > 0 && (
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
-                📍 {trial.locations.slice(0, 3).map((loc, i) => (
+              <div className="trial-location-line">
+                <strong className="trial-location-label">Locations: </strong>
+                {trial.locations.slice(0, 3).map((loc, i) => (
                   <span key={i}>
                     {formatLocation(loc)}
-                    {i < Math.min(trial.locations.length, 3) - 1 ? ' · ' : ''}
+                    {i < Math.min(trial.locations.length, 3) - 1 ? " · " : ""}
                   </span>
                 ))}
                 {trial.locations.length > 3 && ` +${trial.locations.length - 3} more`}
               </div>
             )}
-          </div>
+          </article>
         ))}
       </div>
 
-      <button className="btn-primary" onClick={onGoHome} style={{ marginTop: 24 }}>
-        Start Over
-      </button>
+      <div className="results-actions">
+        <button type="button" className="hero-cta onboarding-cta" onClick={onGoHome}>
+          Start over
+        </button>
+      </div>
     </div>
-  )
+  );
 }

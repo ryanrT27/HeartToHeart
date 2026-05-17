@@ -25,9 +25,3 @@ build/
 # PDFs (patient data — never commit)
 *.pdf
 *.PDF
-
-# JSONS
-*.json
-
-# Marketing assets (add locally)
-frontend/public/images/heart2heart-hero.png

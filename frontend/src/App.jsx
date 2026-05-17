@@ -74,7 +74,9 @@ function App() {
           <div className="site-shell-inner">
             <SiteHeader activePage={null} onNavigate={goToMarketing} />
             <main className="site-main site-main--results">
-              <Results onGoHome={() => goToMarketing("home")} trials={trials} />
+              <div className="app-flow app-flow--results">
+                <Results onGoHome={() => goToMarketing("home")} trials={trials} />
+              </div>
             </main>
           </div>
         </div>
