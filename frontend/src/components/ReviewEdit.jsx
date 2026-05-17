@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { commaList } from "../formatDisplay";
 
 const DIAGNOSIS_FIELDS = [
   { key: "preeclampsia", label: "Preeclampsia" },
@@ -83,7 +84,7 @@ export default function ReviewEdit({ profile, setProfile, onSubmit, onBack }) {
         <h3>Demographics</h3>
         <div className="summary-grid">
           <span>Age: {demo.age || "—"}</span>
-          <span>Race: {(demo.race_ethnicity || []).join(", ") || "—"}</span>
+          <span>Race: {commaList(demo.race_ethnicity) || "—"}</span>
           <span>Height: {demo.height_cm ? `${demo.height_cm.toFixed(1)} cm` : "—"}</span>
           <span>Weight: {demo.weight_kg ? `${demo.weight_kg.toFixed(1)} kg` : "—"}</span>
           <span>BMI: {demo.bmi ? demo.bmi.toFixed(1) : "—"}</span>

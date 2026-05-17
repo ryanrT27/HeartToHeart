@@ -1,70 +1,87 @@
-from fastapi import FastAPI, UploadFile, File
+import logging
+import tempfile
+from pathlib import Path
+from typing import Any
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+
+from backend import anonymize, llm, matcher, pdf
+
+load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Maternal Health API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# DATA SHAPE
 
-class PatientData(BaseModel):
-    user_role: str  # "patient" or "doctor"
-    complications: List[str]
+class PatientProfile(BaseModel):
+    demographics: dict[str, Any] = {}
+    pregnancy: dict[str, Any] = {}
+    health_history: dict[str, Any] = {}
+    diagnoses: dict[str, Any] = {}
+    biomarkers: dict[str, Any] = {}
+    vitals: dict[str, Any] = {}
 
-# ==========================================
-# ENDPOINT 1: Upload & Parse (Teammate's Domain)
-# ==========================================
+
+@app.get("/api/trials/count")
+def trials_count():
+    return {"count": matcher.get_trials_count()}
+
 
 @app.post("/api/upload-and-parse")
-async def parse_document(file: UploadFile = File(...)):
-    """
-    1. Frontend uploads document.
-    2. Teammate parses it here.
-    3. Returns data to frontend for user to review.
-    """
-    # TODO: Teammate puts parsing logic here
-    
-    return {
-        "status": "success",
-        "parsed_complications": ["preeclampsia"] # Mock data
-    }
+async def upload_and_parse(file: UploadFile = File(...)):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(400, "Only PDF files are accepted.")
 
-# ENDPOINT 2: Submit & Validate (No Database)
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+
+    try:
+        raw_text = pdf.extract_text(tmp_path)
+        if len(raw_text.strip()) < 20:
+            raise HTTPException(422, "Could not extract text from the PDF.")
+        anonymized = anonymize.anonymize_text(raw_text)
+        extracted = llm.extract_biomarkers(anonymized)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Processing failed")
+        raise HTTPException(500, f"Processing failed: {e}")
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return {"status": "success", "data": extracted}
+
 
 @app.post("/api/submit-data")
-def submit_data(data: PatientData):
-    """
-    1. User reviews data on frontend and clicks "Submit".
-    2. Since we have no database, we just validate the data is formatted correctly 
-       and tell the frontend it's safe to move to the Trial Matching phase.
-    """
-    return {
-        "status": "success",
-        "message": "Data validated successfully! Ready for trial matching.",
-        "confirmed_data": data
-    }
+def submit_data(profile: PatientProfile):
+    demo = profile.demographics
+    h = demo.get("height_cm")
+    w = demo.get("weight_kg")
+    if h and w:
+        try:
+            demo["bmi"] = round(float(w) / (float(h) / 100) ** 2, 1)
+        except (ValueError, ZeroDivisionError):
+            pass
 
-# ENDPOINT 3: Match Trials (Teammate's Domain)
+    return {"status": "success", "confirmed_data": profile.model_dump()}
+
 
 @app.post("/api/match-trials")
-def match_trials(data: PatientData):
-    """
-    1. Frontend sends the confirmed data here.
-    2. Teammate hits ClinicalTrials.gov API based on the complications.
-    """
-    # TODO: Teammate puts ClinicalTrials logic here
-    
-    return {
-        "status": "success",
-        "trials": [
-            {"title": "Mock Trial for Preeclampsia", "link": "https://clinicaltrials.gov/..."}
-        ]
-    }
+def match_trials(profile: PatientProfile):
+    results = matcher.find_matches(profile.model_dump(), top_n=10)
+    return {"status": "success", "trials": results}

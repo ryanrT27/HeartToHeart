@@ -1,3 +1,5 @@
+import { commaList, formatLocation, scalarDisplay } from "../formatDisplay";
+
 export default function Results({ setCurrentView, trials }) {
   if (!trials || trials.length === 0) {
     return (
@@ -38,7 +40,7 @@ export default function Results({ setCurrentView, trials }) {
 
             {trial.phases && trial.phases.length > 0 && (
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                Phase: {trial.phases.join(', ')}
+                Phase: {commaList(trial.phases)}
               </div>
             )}
 
@@ -51,7 +53,7 @@ export default function Results({ setCurrentView, trials }) {
             {trial.match_reasons && trial.match_reasons.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
                 {trial.match_reasons.map((r, i) => (
-                  <span key={i} className="reason-pill">{r}</span>
+                  <span key={i} className="reason-pill">{scalarDisplay(r)}</span>
                 ))}
               </div>
             )}
@@ -59,7 +61,7 @@ export default function Results({ setCurrentView, trials }) {
             {trial.disqualifiers && trial.disqualifiers.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                 {trial.disqualifiers.map((dq, i) => (
-                  <span key={i} className="dq-pill">{dq}</span>
+                  <span key={i} className="dq-pill">{scalarDisplay(dq)}</span>
                 ))}
               </div>
             )}
@@ -68,7 +70,7 @@ export default function Results({ setCurrentView, trials }) {
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
                 📍 {trial.locations.slice(0, 3).map((loc, i) => (
                   <span key={i}>
-                    {[loc.city, loc.state, loc.country].filter(Boolean).join(', ')}
+                    {formatLocation(loc)}
                     {i < Math.min(trial.locations.length, 3) - 1 ? ' · ' : ''}
                   </span>
                 ))}
