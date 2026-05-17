@@ -1,16 +1,17 @@
 export default function AboutPage() {
   return (
     <article className="marketing-page">
-      <h1>About Heart2Heart</h1>
+      <h1>The Research Gap</h1>
       <p>
-        Did you know that of 90,860 randomized clinical trials posted from 2008 to 2023, 44,160 (49%) met sample criteria. Of these, 362 (0.8%) included pregnant participants, 33,249 (75%) excluded them, and 10,549 (24%)
-        did not specify pregnant participation?
+      <strong>0.8%.</strong> That is the percentage of clinical trials that included pregnant participants over the last 15 years.
+      Out of nearly 91,000 randomized trials, 75% explicitly excluded pregnancy, leaving a massive data void in maternal care. 
+      When we don't study pregnant bodies, we don't have the data to save them.
       </p>
       <p>
-        Cardiovascular disease, in particular, remains a leading cause of serious illness during and after pregnancy. Yet many patients
+        Cardiovascular disease, in particular, remains a leading cause of serious illness during and after pregnancy. Many patients
         never hear about trials that could advance care for conditions such as preeclampsia, gestational hypertension,
-        peripartum cardiomyopathy, and related complications. To address this, we built Heart2Heart. Heart2Heart is a digital pathway designed to connect people who are pregnant, postpartum, or living with
-        pregnancy-related cardiovascular risk with recruiting clinical studies focused on maternal heart health.
+        peripartum cardiomyopathy, and related complications. To address this, we built <strong>Heart2Heart</strong>, a digital pathway designed to connect people who are pregnant, postpartum, or living with
+        pregnancy-related cardiovascular risk with clinical studies focused on maternal heart health.
       </p>
       <h2>Who we serve</h2>
       <p>
