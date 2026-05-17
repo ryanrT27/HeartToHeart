@@ -1231,7 +1231,8 @@ button {
 }
 
 .trial-card-inner {
-  padding-left: clamp(4.25rem, 18vw, 5.75rem);
+  /* Clears the rotated heart; tighten slightly so copy sits closer without overlapping */
+  padding-left: clamp(3.65rem, 14vw, 5rem);
   padding-top: 2px;
 }
 
@@ -1298,7 +1299,7 @@ button {
   }
 
   .trial-card-inner {
-    padding-left: clamp(3.5rem, 22vw, 4.75rem);
+    padding-left: clamp(2.95rem, 18vw, 4rem);
   }
 }
 
@@ -1465,7 +1466,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: clamp(3.1rem, 5.75vw, 3.75rem);
 }
 
 .mission-heading {
@@ -1480,7 +1481,7 @@ button {
 .mission-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 280px));
-  gap: 1.5rem;
+  gap: 2rem;
   justify-content: center;
   width: 100%;
 }
@@ -1503,7 +1504,7 @@ button {
   align-items: center;
   background: #fff;
   border-radius: 20px;
-  padding: 0 1.5rem 1.75rem;
+  padding: 0 2rem 2.5rem;
   box-shadow: 0 4px 20px rgba(107, 17, 24, 0.1);
   position: relative;
   padding-top: 52px;
@@ -1655,8 +1656,8 @@ button {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: clamp(1.75rem, 4vw, 2.75rem);
-  padding-top: clamp(0.5rem, 3vw, 2rem);
+  gap: clamp(0.65rem, 2vw, 1rem);
+  padding-top: clamp(0.35rem, 2.5vw, 1.35rem);
   max-width: 28rem;
   margin-left: auto;
   margin-right: auto;
@@ -1667,7 +1668,7 @@ button {
   .impact-copy {
     justify-self: end;
     margin-right: 0;
-    padding-top: clamp(1rem, 4vw, 3rem);
+    padding-top: clamp(0.85rem, 3.5vw, 2.5rem);
   }
 }
 
@@ -1692,10 +1693,9 @@ button {
   font-family: var(--font-serif);
   font-size: clamp(0.9375rem, 1.8vw, 1.0625rem);
   font-weight: 400;
-  color: var(--color-impact-text);
+  color: var(--color-hero-heading);
   margin: 0;
   line-height: 1.65;
-  opacity: 0.92;
 }
 
 /* ─────────────────────────────────────────────
@@ -1722,7 +1722,7 @@ button {
 @media (max-width: 640px) {
   .lp-footer-inner {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 3rem;
   }
 }
 
@@ -1819,23 +1819,10 @@ button {
 }
 
 .impact-quote-heading {
-  /* Stealing the exact typography from .mission-heading */
   font-family: var(--font-serif);
   font-size: clamp(1.5rem, 3.5vw, 2.25rem);
   font-weight: 700;
-  
-  
-  color: #890B1D; 
-  
-  transform: translateY(-50px); /* Tweak this number to move it higher or lower */
-  
-  /* 2. Control the exact gap between the header and the paragraph below it */
-  margin-bottom: 8px; /* Tweak this to bring the paragraph closer or further away */
-  margin-top: 0;
+  color: #890b1d;
+  margin: 0;
+  line-height: 1.2;
 }
-
-.impact-body {
-  transform: translateY(-50px);
-  margin-top: 0;
-}
-

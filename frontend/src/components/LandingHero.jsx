@@ -56,20 +56,19 @@ export default function LandingHero({ onFindMatch }) {
       {/* ── Our Mission ── */}
       <section className="mission-section" aria-label="Our Mission">
         <h2 className="mission-heading">Our Mission</h2>
-        <br></br>
         <div className="mission-cards">
           {[
             {
               title: "Advocacy",
-              text: "When women have no systems in place to advocate for themselves, cardiovascular risks go undetected. Heart2Heart empowers women to advocate for themselves and their families by connecting them with clinical trials that can define the future of maternal cardiovascular care.",
+              text: "Cardiovascular risks often go undetected when support systems are missing. We empower you to take charge by connecting you with trials that shape the future of maternal heart care.",
             },
             {
               title: "Research",
-              text: "Women\u2019s cardiovascular health during pregnancy and postpartum is severely understudied. Better access to clinical trials improves research representation and gives physicians the data they need to consistently provide informed and accurate care.",
+              text: "Maternal heart health is critically understudied. By increasing representation and participation, we provide physicians with the data needed for informed, accurate, and life-saving care.",
             },
             {
               title: "Awareness",
-              text: "Many women experience symptoms that are dismissed, misdiagnosed, or unexplained. Participating in clinical trials allows women to properly monitor, evaluate, and learn new information that can improve understanding of their own health.",
+              text: "Your symptoms deserve answers. Participating in research allows you to monitor your own health while deepening our collective understanding of the postpartum heart.",
             },
           ].map(({ title, text }) => {
             const iconSrc = MISSION_CARD_IMAGES[title];
@@ -104,7 +103,7 @@ export default function LandingHero({ onFindMatch }) {
             </div>
           </div>
           <div className="impact-copy">
-            <h2 className="impact-quote-heading">The Reality</h2>
+            <h2 className="impact-quote-heading">Our Solution</h2>
             <p className="impact-body">With gaps in clinical care and patient knowledge identified as the leading causes of these preventable deaths, Heart2Heart exists to empower women to advocate for each other by connecting them with clinical trials that can define the future of maternal cardiovascular care.</p>
           </div>
         </div>
