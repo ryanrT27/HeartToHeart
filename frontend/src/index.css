@@ -492,6 +492,38 @@ body {
   padding-left: 1.25rem;
 }
 
+/* Inline citation links (marketing + impact quote); avoids default browser blue */
+.content-inline-link,
+.content-inline-link:visited {
+  color: var(--color-hero-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.15s ease;
+}
+
+.content-inline-link:hover {
+  color: #551019;
+}
+
+.content-inline-link:focus-visible {
+  outline: 2px solid var(--color-hero-heading);
+  outline-offset: 2px;
+}
+
+.impact-quote-box .content-inline-link,
+.impact-quote-box .content-inline-link:visited {
+  color: var(--color-header-text);
+}
+
+.impact-quote-box .content-inline-link:hover {
+  color: #fff;
+}
+
+.impact-quote-box .content-inline-link:focus-visible {
+  outline-color: #fff;
+}
+
 .site-main--onboarding {
   flex: 1;
   width: 100%;

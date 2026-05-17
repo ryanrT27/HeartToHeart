@@ -7,7 +7,7 @@ export default function AboutPage() {
         href="https://www.sciencedirect.com/science/article/pii/S0002937825000031" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="text-red-600 underline hover:text-red-800 transition-colors"
+        className="content-inline-link"
       >
         0.8% 
       </a> of clinical trials included pregnant participants.

@@ -109,7 +109,7 @@ export default function LandingHero({ onFindMatch }) {
                 href="https://cdc.gov/maternal-mortality/php/data-research/mmrc/index.html?cove-tab=4" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-red-600 underline hover:text-red-800 transition-colors">
+                className="content-inline-link">
                 CDC, </a> 85.7% of pregnancy-related deaths in 2022 were preventable.</p>
             </div>
           </div>
